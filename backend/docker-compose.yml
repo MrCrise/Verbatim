@@ -7,6 +7,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - POSTGRES_SERVER=postgres
     volumes:
       # hot-reload во время разработки
       - ./src:/app/src
@@ -22,6 +24,8 @@ services:
     command: celery -A src.celery_app worker --loglevel=info
     env_file:
       - .env
+    environment:
+      - POSTGRES_SERVER=postgres
     volumes:
       - ./src:/app/src
       - shared_uploads:/app/temp_uploads
