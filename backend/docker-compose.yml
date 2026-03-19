@@ -9,6 +9,7 @@ services:
       - .env
     environment:
       - POSTGRES_SERVER=postgres
+      - MINIO_ENDPOINT=minio:9000
     volumes:
       # hot-reload во время разработки
       - ./src:/app/src
@@ -77,6 +78,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      MINIO_KMS_SECRET_KEY: "verbatim-key:MjAyNi12ZXJiYXRpbS1rZXktdGVzdC0zMmJ5dGVzISE="
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
