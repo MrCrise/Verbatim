@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY: str = "admin"
     MINIO_SECRET_KEY: str = "password123"
     MINIO_BUCKET_AUDIO: str = "raw-audio"
-    MINIO_SECURE: bool = False  # False - http, True - https.
+    MINIO_SECURE: bool = True  # False - http, True - https.
 
     # --- FILES ---
     UPLOAD_DIR: str = "temp_uploads"

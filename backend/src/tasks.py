@@ -17,7 +17,7 @@ class BaseTask(Task):
 
 
 @celery_app.task(bind=True, base=BaseTask, name="process_audio_task")
-def process_audio_task(self, filename: str, language: Optional[str] = None):
+def process_audio_task(self, meeting_id: str, storage_path: str, language: Optional[str] = None):
     """
     Основной таск для транскрибации.
     
@@ -26,7 +26,7 @@ def process_audio_task(self, filename: str, language: Optional[str] = None):
         language: код языка, либо None
     """
     logger.info(f"Start processing task: {self.request.id}")
-    logger.info(f"File: {filename} | Language: {language or 'Auto'}")
+    logger.info(f"File: {storage_path} | Language: {language or 'Auto'}")
 
     try:
         time.sleep(5)
@@ -34,7 +34,7 @@ def process_audio_task(self, filename: str, language: Optional[str] = None):
         # Тутава будет ML код.
 
         result = {
-            "file": filename,
+            "meeting_id": meeting_id,
             "status": "completed",
             "duration": 123,
             "segments": [
