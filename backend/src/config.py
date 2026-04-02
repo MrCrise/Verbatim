@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+    
+    # --- JWT ---
+    JWT_SECRET_KEY: str = "super_secret_key"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
+    JWT_ALGORITHM: str = "HS256"
+
+    # --- API ---
+    API_V1_STR: str = "/api/v1"
 
     # --- REDIS & CELERY ---
     REDIS_HOST: str = "localhost"
