@@ -39,7 +39,7 @@ async def upload_media(
     new_meeting = Meeting(
         title=file.filename,
         storage_file_path="",
-        owner_id=current_user.id,  # Временная заглушка, пока нет авторизации.
+        owner_id=current_user.id,
         status=MeetingStatus.UPLOADED
     )
     db.add(new_meeting)
