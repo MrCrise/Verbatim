@@ -22,8 +22,14 @@ settings = get_settings()
 async def update_meeting_status(meeting_id: str, data: dict):
     """Вспомогательная функция для обновления статуса в БД."""
 
+    try:
+        parsed_uuid = uuid.UUID(meeting_id)
+    except ValueError:
+        logger.error(f"⚠️ Invalid UUID passed: {meeting_id}")
+        return
+
     async with async_session_maker() as session:
-        query = update(Meeting).where(Meeting.id == uuid.UUID(meeting_id)).values(**data)
+        query = update(Meeting).where(Meeting.id == parsed_uuid).values(**data)
         await session.execute(query)
         await session.commit()
         logger.info(f"Database updated for meeting {meeting_id}: {data.get('status')}")
@@ -33,9 +39,18 @@ class BaseTask(Task):
     """Базовый класс для автоматического логирования ошибок."""
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        meeting_id = args[0] if args else "unknown"
+        meeting_id = kwargs.get("meeting_id")
+        if not meeting_id and args:
+            meeting_id = args[0]
+
         logger.error(f"Task {task_id} failed: {exc}")
-        asyncio.run(update_meeting_status(meeting_id, {"status": MeetingStatus.FAILED}))
+
+        if meeting_id:
+            try:
+                asyncio.run(update_meeting_status(meeting_id, {"status": MeetingStatus.FAILED}))
+            except Exception as db_exc:
+                logger.error(f"Failed to update DB inside on_failure: {db_exc}")
+
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
 

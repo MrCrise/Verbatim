@@ -63,13 +63,23 @@ class MLPipeline:
             hf_token = settings.HF_TOKEN
             if not hf_token:
                 raise RuntimeError("HF_TOKEN not set in environment")
-  
-            login(token=hf_token, add_to_git_credential=False)
             
             self.diar_pipeline = DiarizationPipeline.from_pretrained(
-                "pyannote/speaker-diarization-3.1"
+                "pyannote/speaker-diarization-3.1",
+                use_auth_token=hf_token
         )
+
+        if self.diar_pipeline is None:
+            raise RuntimeError(
+                "Pyannote model returned None. "
+                "You MUST accept the user agreements on HuggingFace:\n"
+                "1. https://huggingface.co/pyannote/speaker-diarization-3.1\n"
+                "2. https://huggingface.co/pyannote/segmentation-3.0\n"
+                "Check your HF_TOKEN permissions as well."
+            )
+
         self.diar_pipeline.to(torch.device(self.device))
+
 
     def preprocess_audio(self, audio_path: Path) -> tuple:
         """
