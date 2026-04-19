@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     MINIO_BUCKET_AUDIO: str = "raw-audio"
     MINIO_SECURE: bool = True  # False - http, True - https.
 
+    # --- ML ---
+    HF_TOKEN: str
+
     # --- FILES ---
     UPLOAD_DIR: str = "temp_uploads"
 

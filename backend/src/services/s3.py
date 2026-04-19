@@ -2,7 +2,6 @@ import aioboto3
 from contextlib import asynccontextmanager
 from src.config import get_settings
 
-
 settings = get_settings()
 
 

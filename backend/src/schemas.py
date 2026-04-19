@@ -51,6 +51,6 @@ class MeetingSummary(MeetingBase):
 
 # Полная схема для страницы конкретной записи.
 class MeetingDetail(MeetingBase):
-    transcript_data: Optional[List[Dict[str, Any]]] = None
+    transcript_data: Optional[Dict[str, Any]] = None
     speakers_map: Dict[str, str]
     celery_task_id: Optional[str] = None

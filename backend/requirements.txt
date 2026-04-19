@@ -6,6 +6,8 @@ aiohttp==3.13.3
 aioitertools==0.13.0
 aiosignal==1.4.0
 alembic==1.18.4
+pydub
+ffmpeg-python
 amqp==5.3.1
 annotated-doc==0.0.4
 annotated-types==0.7.0
@@ -59,3 +61,13 @@ vine==5.1.0
 wcwidth==0.6.0
 wrapt==1.17.3
 yarl==1.23.0
+
+# ML
+numpy==2.2.5
+matplotlib==3.9.4
+gigaam @ git+https://github.com/salute-developers/GigaAM.git
+pyannote.audio==3.3.2
+huggingface-hub==0.23.0
+soundfile==0.12.1
+resampy==0.4.3
+jiwer==3.1.0

@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project-specific
+temp_uploads/
+outputs/
+*.wav
+*.mp4
+*.mp3
+*.flac
+*.m4a
+
+# Docker
+*.log

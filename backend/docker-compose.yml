@@ -11,12 +11,12 @@ services:
       - POSTGRES_SERVER=postgres
       - MINIO_ENDPOINT=minio:9000
     volumes:
-      # hot-reload во время разработки
       - ./src:/app/src
-      # Общая папка для API и воркера, чтобы воркер видел загруженные файлы
       - shared_uploads:/app/temp_uploads
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
 
   worker:
@@ -27,12 +27,20 @@ services:
       - .env
     environment:
       - POSTGRES_SERVER=postgres
+      - MINIO_ENDPOINT=minio:9000
     volumes:
       - ./src:/app/src
       - shared_uploads:/app/temp_uploads
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   redis:
     image: redis:8-alpine
@@ -80,6 +88,11 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
       MINIO_KMS_SECRET_KEY: "verbatim-key:MjAyNi12ZXJiYXRpbS1rZXktdGVzdC0zMmJ5dGVzISE="
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - minio_data:/data
 
