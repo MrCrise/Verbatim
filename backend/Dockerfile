@@ -1,6 +1,7 @@
 FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
 RUN sed -i 's/archive.ubuntu.com/mirror.yandex.ru/g' /etc/apt/sources.list && \
     apt-get update && apt-get install -y \
@@ -23,7 +24,5 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
 COPY . .
 
 RUN mkdir -p /app/temp_uploads
-
-ENV PYTHONUNBUFFERED=1
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
