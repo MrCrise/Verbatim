@@ -13,8 +13,8 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-# --- Пользователи ---
 
+# --- Пользователи ---
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -32,8 +32,8 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# --- Записи встреч ---
 
+# --- Записи встреч ---
 
 class MeetingBase(BaseModel):
     id: UUID4
@@ -43,15 +43,13 @@ class MeetingBase(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 # Схема для списка записей.
-
-
 class MeetingSummary(MeetingBase):
     pass
 
+
 # Полная схема для страницы конкретной записи.
-
-
 class MeetingDetail(MeetingBase):
     transcript_data: Optional[List[Dict[str, Any]]] = None
     speakers_map: Dict[str, str]
