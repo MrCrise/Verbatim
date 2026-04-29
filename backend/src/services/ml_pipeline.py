@@ -90,7 +90,7 @@ class MLPipeline:
         self.diar_pipeline.to(torch.device(self.device))
 
 
-    def preprocess_audio(self, audio_path: Path, unique_id: str) -> tuple:
+    def preprocess_audio(self, audio_path: Path) -> tuple:
         """
         Convert any input audio/video file to mono 16kHz WAV format.
 
@@ -149,7 +149,7 @@ class MLPipeline:
         logger.info(f"[Chunking] {len(chunks)} chunks x {self.chunk_sec}s")
         return chunks
     
-    def run_asr(self, chunks: List[tuple], sr: int, unique_id: str) -> Dict:
+    def run_asr(self, chunks: List[tuple], sr: int) -> Dict:
         """        
         Perform automatic speech recognition with word-level timestamps.
 
@@ -334,7 +334,7 @@ class MLPipeline:
 
         return result
     
-    def process(self, audio_path: str, unique_id: str) -> Dict[str, Any]:
+    def process(self, audio_path: str) -> Dict[str, Any]:
         """
         Execute full speech processing pipeline.
 

@@ -40,8 +40,6 @@ class MeetingBase(BaseModel):
     title: str
     status: MeetingStatus
     created_at: datetime
-    transcript_data: Optional[Dict[str, Any]] = None
-    duration: Optional[str] = "00:00"
 
     model_config = ConfigDict(from_attributes=True)
 

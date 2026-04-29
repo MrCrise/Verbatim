@@ -36,7 +36,6 @@ async def upload_media(
     if file_extension not in (".mp3", ".wav", ".m4a", ".mp4", ".webm"):
         raise HTTPException(status_code=400, detail="Unsupported file format")
 
-    # Если title передан с фронтенда, используем его, иначе берем оригинальное имя файла
     final_title = title.strip() if title else file.filename
 
     # Создание записи в БД.
