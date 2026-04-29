@@ -1,0 +1,166 @@
+<div class="min-h-screen bg-app-bg font-montserrat flex flex-col pb-32">
+
+  <!-- Navigation -->
+  <nav class="w-full h-[70px] bg-white border-b border-black/10 backdrop-blur-[9.35px] flex items-center px-6 lg:px-[100px] sticky top-0 z-50">
+    <div class="flex items-center justify-between w-full gap-4">
+      <!-- ФИКС: Кликабельный логотип -->
+      <span routerLink="/dashboard" class="text-black font-bold text-xl whitespace-nowrap shrink-0 cursor-pointer hover:opacity-80 transition-opacity">Транскрибация Встреч</span>
+
+      <div class="flex items-center gap-3">
+        <button routerLink="/dashboard" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg bg-black text-white text-base font-semibold whitespace-nowrap">Мои встречи</button>
+        <button routerLink="/upload" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-base font-semibold whitespace-nowrap hover:bg-gray-50">Загрузить файл</button>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="text-right hidden sm:block"><div class="text-black font-semibold text-base leading-tight">{{ userName }}</div></div>
+        <button (click)="onLogout()" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-app-icon text-app-text-icon text-[15px] font-medium hover:bg-gray-50">Выйти</button>
+      </div>
+    </div>
+  </nav>
+
+  @if (meeting) {
+    <main class="flex-1 px-6 lg:px-[100px] py-8 max-w-[1440px] mx-auto w-full">
+
+      <!-- Заголовок страницы -->
+      <div class="mb-8">
+        <button routerLink="/dashboard" class="flex items-center gap-2 text-app-text-secondary hover:text-black font-medium text-sm mb-4 transition-colors">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Назад
+        </button>
+        <h1 class="text-3xl font-bold text-black mb-2">{{ meeting.title }}</h1>
+        <p class="text-app-text-secondary text-base">{{ formatDate(meeting.created_at) }}</p>
+      </div>
+
+      <!-- Карточка информации -->
+      <div class="bg-white rounded-[13px] border border-app-border p-6 mb-6 flex flex-wrap items-center justify-between gap-6 shadow-sm">
+        <div class="flex items-center gap-10">
+          <div class="flex items-center gap-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#868694" stroke-width="1.5"/><path d="M12 7V12L15 15" stroke="#868694" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div>
+              <div class="text-xs text-app-text-secondary mb-0.5">Длительность</div>
+              <div class="font-medium text-black">{{ meeting.duration || '--:--' }}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M17 20C17 18.3431 14.7614 17 12 17C9.23858 17 7 18.3431 7 20M12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8C13.6569 8 15 9.34315 15 11C15 12.6569 13.6569 14 12 14Z" stroke="#868694" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div>
+              <div class="text-xs text-app-text-secondary mb-0.5">Участники</div>
+              <div class="font-medium text-black">{{ meeting.transcript_data?.speakers?.length || 0 }} человек</div>
+            </div>
+          </div>
+        </div>
+        <button (click)="onDownload()" [disabled]="isDownloading" class="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-900 transition-colors disabled:opacity-50">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 16L8 12M12 16L16 12M4 20H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {{ isDownloading ? 'Скачивание...' : 'Скачать' }}
+        </button>
+      </div>
+
+      <!-- Основная сетка -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Левая панель: Спикеры -->
+        <div class="lg:col-span-4 flex flex-col gap-4">
+          <div class="bg-white rounded-[13px] border border-app-border p-6 shadow-sm sticky top-[100px]">
+            <h2 class="text-xl font-bold text-black mb-1">Спикеры</h2>
+            <p class="text-sm text-app-text-secondary mb-5">Фильтр по участникам встречи</p>
+
+            <div class="flex flex-col gap-2">
+              <button
+                (click)="setFilter(null)"
+                [class.bg-black]="activeSpeakerFilter === null"
+                [class.text-white]="activeSpeakerFilter === null"
+                [class.border-transparent]="activeSpeakerFilter === null"
+                [class.border-app-border]="activeSpeakerFilter !== null"[class.text-black]="activeSpeakerFilter !== null"
+                class="w-full text-left px-4 py-3 rounded-lg border font-semibold transition-colors"
+              >
+                Все спикеры
+              </button>
+
+              @for (speaker of meeting.transcript_data?.speakers; track speaker) {
+                <div
+                  (click)="setFilter(speaker)"
+                  [class.bg-black]="activeSpeakerFilter === speaker"
+                  [class.text-white]="activeSpeakerFilter === speaker"
+                  [class.border-transparent]="activeSpeakerFilter === speaker"
+                  [class.border-app-border]="activeSpeakerFilter !== speaker"[class.text-black]="activeSpeakerFilter !== speaker"
+                  class="w-full px-4 py-3 rounded-lg border font-semibold transition-colors flex justify-between items-center cursor-pointer group"
+                >
+
+                  @if (editingSpeaker === speaker) {
+                    <input
+                      type="text"
+                      [(ngModel)]="speakersMap[speaker]"
+                      (blur)="saveRenaming()"
+                      (keyup.enter)="saveRenaming()"
+                      class="bg-white text-black px-2 py-1 rounded outline-none border border-app-accent w-full mr-2"
+                      autofocus
+                    >
+                  } @else {
+                    <span class="truncate">{{ speakersMap[speaker] }}</span>
+                    <button (click)="startRenaming(speaker, $event)" class="shrink-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Правая панель: Сегменты Транскрипции -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+          <div class="bg-white rounded-[13px] border border-app-border p-6 shadow-sm">
+            <h2 class="text-xl font-bold text-black mb-1">Транскрипция</h2>
+            <p class="text-sm text-app-text-secondary mb-6">{{ getFilteredSegments().length }} сегментов</p>
+
+            <div class="flex flex-col gap-6">
+              @for (seg of getFilteredSegments(); track $index) {
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-6 border-b border-gray-100 pb-6 last:border-0 last:pb-0 group">
+
+                  <!-- Таймкод и имя спикера -->
+                  <div class="flex items-center sm:items-start gap-3 shrink-0 sm:w-[200px]">
+                    <span class="text-sm text-blue-500 font-medium whitespace-nowrap">{{ formatTime(seg.start) }}</span>
+                    <span class="px-3 py-1 rounded-full bg-gray-100 text-xs font-bold text-gray-700 truncate max-w-[130px]" [title]="speakersMap[seg.speaker]">
+                      {{ speakersMap[seg.speaker] }}
+                    </span>
+                  </div>
+
+                  <!-- Текст реплики (ТЕПЕРЬ КЛИКАБЕЛЬНЫЙ) -->
+                  <div
+                    class="flex-1 cursor-pointer p-2 -m-2 rounded hover:bg-gray-50 transition-colors"
+                    (click)="playFrom(seg.start)"
+                  >
+                    <p class="text-app-text-icon text-[15px] leading-relaxed group-hover:text-black transition-colors">{{ seg.text }}</p>
+                  </div>
+                </div>
+              } @empty {
+                <div class="text-center py-10 text-app-text-secondary">
+                  Сегменты не найдены.
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  } @else {
+    <!-- Лоадер пока данные встречи грузятся -->
+    <div class="flex-1 flex items-center justify-center">
+      <div class="w-12 h-12 border-4 border-app-accent border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  }
+
+  <!-- ЗАКРЕПЛЕННЫЙ АУДИОПЛЕЕР СНИЗУ -->
+  @if (audioUrl) {
+    <div class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-50">
+      <div class="max-w-[1440px] mx-auto px-6 lg:px-[100px] flex items-center justify-center">
+        <!-- ВАЖНО: Добавили #audioPlayer -->
+        <audio #audioPlayer controls [src]="audioUrl" class="w-full max-w-3xl h-[40px] outline-none"></audio>
+      </div>
+    </div>
+  }
+
+</div>

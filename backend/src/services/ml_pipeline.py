@@ -97,7 +97,8 @@ class MLPipeline:
         Uses FFmpeg via subprocess for secure execution.
         Temporary files are automatically cleaned up.
         """
-        logger.info(f"[Preprocess] Converting {audio_path.name} → WAV 16kHz mono")
+
+        logger.info(f"[Preprocess] Converting {audio_path.name}")
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
             tmp_wav_path = Path(tmp_file.name)
@@ -132,6 +133,7 @@ class MLPipeline:
             if tmp_wav_path.exists():
                 tmp_wav_path.unlink()
 
+
     def split_into_chunks(self, waveform: np.ndarray, sr: int) -> List[tuple]:
         """
         Split waveform into fixed-length chunks for stable ASR decoding.
@@ -158,10 +160,10 @@ class MLPipeline:
         """
         logger.info(f"[ASR] Starting ({len(chunks)} chunks)...")
         start_time = time.time()
-        
+
         all_words = []
         full_text_parts = []
-        
+
         for i, (chunk, offset) in enumerate(chunks, start=1):
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_chunk_file:
                 tmp_path = Path(tmp_chunk_file.name)
@@ -174,22 +176,23 @@ class MLPipeline:
 
             chunk_text = result.text.strip()
             full_text_parts.append(chunk_text)
-            
+
             for w in result.words:
                 all_words.append({
                     "word": w.text,
                     "start": round(w.start + offset, 3),
                     "end": round(w.end + offset, 3),
                 })
-        
+            
         runtime = time.time() - start_time
         logger.info(f"[ASR] Done in {runtime:.2f}s | Words: {len(all_words)}")
-        
+
         return {
             "text": " ".join(full_text_parts),
             "words": all_words,
             "runtime_sec": round(runtime, 3),
         }
+
     
     def run_diarization(self, waveform: np.ndarray, sr: int) -> Dict:
         """
@@ -382,6 +385,5 @@ class MLPipeline:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             logger.info("[Pipeline] GPU/RAM cache cleared")
-
 
 ml_pipeline = MLPipeline()
