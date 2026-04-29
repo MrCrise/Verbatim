@@ -56,8 +56,16 @@ class MLPipeline:
         """
         if self.asr_model is None:
             logger.info(f"Loading GigaAM {self.model_name}...")
-            self.asr_model = gigaam.load_model(self.model_name)
-        
+            try:
+                self.asr_model = gigaam.load_model(self.model_name)
+            except AssertionError:
+                import shutil
+                cache_path = Path("/root/.cache/gigaam")
+                if cache_path.exists():
+                    shutil.rmtree(cache_path)
+                logger.warning("GigaAM cache cleared. Retrying model load...")
+                self.asr_model = gigaam.load_model(self.model_name)
+
         if self.diar_pipeline is None:
             logger.info("Loading pyannote diarization...")
             

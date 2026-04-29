@@ -7,7 +7,7 @@ from celery import Task
 
 from src.celery_app import celery_app
 from src.logger import setup_logger
-from src.db.database import async_session_maker
+from src.db.database import async_session_maker, engine
 from src.db.models import Meeting, MeetingStatus
 from src.services.s3 import s3_service
 from src.services.ml_pipeline import ml_pipeline
@@ -22,17 +22,17 @@ settings = get_settings()
 async def update_meeting_status(meeting_id: str, data: dict):
     """Вспомогательная функция для обновления статуса в БД."""
 
+    await engine.dispose()  # Закрываем все соединения перед выполнением операции, чтобы избежать проблем с пулом в Celery.
+
     try:
         parsed_uuid = uuid.UUID(meeting_id)
-    except ValueError:
-        logger.error(f"Invalid UUID passed: {meeting_id}")
-        return
-
-    async with async_session_maker() as session:
-        query = update(Meeting).where(Meeting.id == parsed_uuid).values(**data)
-        await session.execute(query)
-        await session.commit()
-        logger.info(f"Database updated for meeting {meeting_id}: {data.get('status')}")
+        async with async_session_maker() as session:
+            query = update(Meeting).where(Meeting.id == parsed_uuid).values(**data)
+            await session.execute(query)
+            await session.commit()
+            logger.info(f"Database updated for meeting {meeting_id}: {data.get('status')}")
+    except Exception as e:
+        logger.error(f"Failed to update meeting {meeting_id}: {e}")
 
 
 class BaseTask(Task):
