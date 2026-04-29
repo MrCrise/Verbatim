@@ -1,3 +1,4 @@
+import gc
 import json
 import time
 import warnings
@@ -193,8 +194,9 @@ class MLPipeline:
         
         waveform_tensor = torch.tensor(waveform, dtype=torch.float32).unsqueeze(0)
         audio_input = {"waveform": waveform_tensor, "sample_rate": sr}
-        
-        annotation = self.diar_pipeline(audio_input)
+
+        with torch.no_grad():
+            annotation = self.diar_pipeline(audio_input)
         
         segments = []
         for turn, _, speaker in annotation.itertracks(yield_label=True):
@@ -330,41 +332,48 @@ class MLPipeline:
         - Speaker segments
         - Performance metrics
         """
-        audio_path = Path(audio_path)
-        logger.info(f"[Pipeline] Processing: {audio_path.name}")
-        
-        pipeline_start = time.time()
-        
-        self._load_models()
-        
-        waveform, sr = self.preprocess_audio(audio_path)
-        duration_sec = len(waveform) / sr
-        
-        chunks = self.split_into_chunks(waveform, sr)
-        asr_result = self.run_asr(chunks, sr)
-        diar_result = self.run_diarization(waveform, sr)
-        merged_words = self.merge_asr_diarization(asr_result, diar_result)
-        segments = self.build_segments(merged_words)
-        
-        total_runtime = time.time() - pipeline_start
-        rtf = total_runtime / duration_sec
-        
-        logger.info(f"[Pipeline] Done | Runtime: {total_runtime:.2f}s | RTF: {rtf:.3f}")
-        
-        return {
-            "speakers": diar_result["speakers"],
-            "segments": segments,
-            "full_text": asr_result["text"],
-            "duration_sec": round(duration_sec, 3),
-            "runtime_sec": round(total_runtime, 3),
-            "rtf": round(rtf, 4),
-            "metadata": {
-                "model": self.model_name,
-                "device": self.device,
-                "asr_runtime_sec": asr_result["runtime_sec"],
-                "diar_runtime_sec": diar_result["runtime_sec"],
+
+        try:
+            audio_path = Path(audio_path)
+            logger.info(f"[Pipeline] Processing: {audio_path.name}")
+            
+            pipeline_start = time.time()
+            
+            self._load_models()
+            
+            waveform, sr = self.preprocess_audio(audio_path)
+            duration_sec = len(waveform) / sr
+            
+            chunks = self.split_into_chunks(waveform, sr)
+            asr_result = self.run_asr(chunks, sr)
+            diar_result = self.run_diarization(waveform, sr)
+            merged_words = self.merge_asr_diarization(asr_result, diar_result)
+            segments = self.build_segments(merged_words)
+            
+            total_runtime = time.time() - pipeline_start
+            rtf = total_runtime / duration_sec
+            
+            logger.info(f"[Pipeline] Done | Runtime: {total_runtime:.2f}s | RTF: {rtf:.3f}")
+            
+            return {
+                "speakers": diar_result["speakers"],
+                "segments": segments,
+                "full_text": asr_result["text"],
+                "duration_sec": round(duration_sec, 3),
+                "runtime_sec": round(total_runtime, 3),
+                "rtf": round(rtf, 4),
+                "metadata": {
+                    "model": self.model_name,
+                    "device": self.device,
+                    "asr_runtime_sec": asr_result["runtime_sec"],
+                    "diar_runtime_sec": diar_result["runtime_sec"],
+                }
             }
-        }
+        finally:
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            logger.info("[Pipeline] GPU/RAM cache cleared")
 
 
 ml_pipeline = MLPipeline()
