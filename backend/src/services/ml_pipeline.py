@@ -1,3 +1,4 @@
+import gc
 import json
 import time
 import warnings
@@ -55,8 +56,16 @@ class MLPipeline:
         """
         if self.asr_model is None:
             logger.info(f"Loading GigaAM {self.model_name}...")
-            self.asr_model = gigaam.load_model(self.model_name)
-        
+            try:
+                self.asr_model = gigaam.load_model(self.model_name)
+            except AssertionError:
+                import shutil
+                cache_path = Path("/root/.cache/gigaam")
+                if cache_path.exists():
+                    shutil.rmtree(cache_path)
+                logger.warning("GigaAM cache cleared. Retrying model load...")
+                self.asr_model = gigaam.load_model(self.model_name)
+
         if self.diar_pipeline is None:
             logger.info("Loading pyannote diarization...")
             
@@ -88,20 +97,41 @@ class MLPipeline:
         Uses FFmpeg via subprocess for secure execution.
         Temporary files are automatically cleaned up.
         """
+
         logger.info(f"[Preprocess] Converting {audio_path.name}")
-        tmp_wav_path = Path(tempfile.gettempdir()) / f"prep_{unique_id}.wav"
+
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+            tmp_wav_path = Path(tmp_file.name)
 
         try:
-            result = subprocess.run(["ffmpeg", "-y", "-i", str(audio_path), "-ac", "1", "-ar", "16000", str(tmp_wav_path), "-loglevel", "error"],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            result = subprocess.run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i", str(audio_path),
+                    "-ac", "1",
+                    "-ar", "16000",
+                    str(tmp_wav_path),
+                    "-loglevel", "error",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
+
             if result.returncode != 0:
+                logger.error(f"FFmpeg error: {result.stderr.decode()}")
                 raise RuntimeError("FFmpeg conversion failed")
 
             waveform, sr = sf.read(str(tmp_wav_path), dtype="float32")
+
+            duration = len(waveform) / sr
+            logger.info(f"[Preprocess] Duration: {duration:.1f}s")
+
             return waveform, sr
+
         finally:
-            if tmp_wav_path.exists(): tmp_wav_path.unlink()
+            if tmp_wav_path.exists():
+                tmp_wav_path.unlink()
 
 
     def split_into_chunks(self, waveform: np.ndarray, sr: int) -> List[tuple]:
@@ -130,21 +160,39 @@ class MLPipeline:
         """
         logger.info(f"[ASR] Starting ({len(chunks)} chunks)...")
         start_time = time.time()
+
         all_words = []
         full_text_parts = []
-        tmp_chunk_path = Path(tempfile.gettempdir()) / f"chunk_{unique_id}.wav"
 
         for i, (chunk, offset) in enumerate(chunks, start=1):
-            sf.write(str(tmp_chunk_path), chunk, sr)
-            result = self.asr_model.transcribe(str(tmp_chunk_path), word_timestamps=True)
-            full_text_parts.append(result.text.strip())
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_chunk_file:
+                tmp_path = Path(tmp_chunk_file.name)
+            try:
+                sf.write(str(tmp_path), chunk, sr)
+                result = self.asr_model.transcribe(str(tmp_path), word_timestamps=True)
+            finally:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+
+            chunk_text = result.text.strip()
+            full_text_parts.append(chunk_text)
+
             for w in result.words:
-                all_words.append({"word": w.text, "start": round(w.start + offset, 3), "end": round(w.end + offset, 3)})
+                all_words.append({
+                    "word": w.text,
+                    "start": round(w.start + offset, 3),
+                    "end": round(w.end + offset, 3),
+                })
+            
+        runtime = time.time() - start_time
+        logger.info(f"[ASR] Done in {runtime:.2f}s | Words: {len(all_words)}")
 
-        if tmp_chunk_path.exists(): tmp_chunk_path.unlink()
+        return {
+            "text": " ".join(full_text_parts),
+            "words": all_words,
+            "runtime_sec": round(runtime, 3),
+        }
 
-        return {"text": " ".join(full_text_parts), "words": all_words,
-                "runtime_sec": round(time.time() - start_time, 3)}
     
     def run_diarization(self, waveform: np.ndarray, sr: int) -> Dict:
         """
@@ -157,8 +205,9 @@ class MLPipeline:
         
         waveform_tensor = torch.tensor(waveform, dtype=torch.float32).unsqueeze(0)
         audio_input = {"waveform": waveform_tensor, "sample_rate": sr}
-        
-        annotation = self.diar_pipeline(audio_input)
+
+        with torch.no_grad():
+            annotation = self.diar_pipeline(audio_input)
         
         segments = []
         for turn, _, speaker in annotation.itertracks(yield_label=True):
@@ -185,16 +234,16 @@ class MLPipeline:
         logger.info("[Merge] Merging words with speakers...")
         
         def find_speaker(word_start, word_end, diar_segments):
-            word_mid = (word_start + word_end) / 2
-            speakers = []
+            best_speaker = "unknown"
+            best_overlap = 0.0
+
             for seg in diar_segments:
-                if seg["start"] <= word_mid <= seg["end"]:
-                    speakers.append(seg["speaker"])
-            
-            if not speakers:
-                return "unknown"
-            uniq = sorted(set(speakers))
-            return uniq[0] if len(uniq) == 1 else uniq[0]
+                overlap = max(0.0, min(word_end, seg["end"]) - max(word_start, seg["start"]))
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_speaker = seg["speaker"]
+
+            return best_speaker
         
         merged_words = []
         for w in asr_result["words"]:
@@ -294,26 +343,47 @@ class MLPipeline:
         - Speaker segments
         - Performance metrics
         """
-        self._load_models()
-        waveform, sr = self.preprocess_audio(Path(audio_path), unique_id)
-        duration_sec = len(waveform) / sr
 
-        chunks = self.split_into_chunks(waveform, sr)
-        asr_result = self.run_asr(chunks, sr, unique_id)
-        diar_result = self.run_diarization(waveform, sr)
-
-        merged_words = self.merge_asr_diarization(asr_result, diar_result)
-        segments = self.build_segments(merged_words)
-
-        return {
-            "speakers": diar_result["speakers"],
-            "segments": segments,
-            "full_text": asr_result["text"],
-            "duration_sec": round(duration_sec, 3),
-            "runtime_sec": round(time.time() - (time.time() - (asr_result["runtime_sec"] + diar_result["runtime_sec"])),
-                                 3),
-            "rtf": round((asr_result["runtime_sec"] + diar_result["runtime_sec"]) / duration_sec, 4),
-            "metadata": {"model": self.model_name, "device": self.device}
-        }
+        try:
+            audio_path = Path(audio_path)
+            logger.info(f"[Pipeline] Processing: {audio_path.name}")
+            
+            pipeline_start = time.time()
+            
+            self._load_models()
+            
+            waveform, sr = self.preprocess_audio(audio_path)
+            duration_sec = len(waveform) / sr
+            
+            chunks = self.split_into_chunks(waveform, sr)
+            asr_result = self.run_asr(chunks, sr)
+            diar_result = self.run_diarization(waveform, sr)
+            merged_words = self.merge_asr_diarization(asr_result, diar_result)
+            segments = self.build_segments(merged_words)
+            
+            total_runtime = time.time() - pipeline_start
+            rtf = total_runtime / duration_sec
+            
+            logger.info(f"[Pipeline] Done | Runtime: {total_runtime:.2f}s | RTF: {rtf:.3f}")
+            
+            return {
+                "speakers": diar_result["speakers"],
+                "segments": segments,
+                "full_text": asr_result["text"],
+                "duration_sec": round(duration_sec, 3),
+                "runtime_sec": round(total_runtime, 3),
+                "rtf": round(rtf, 4),
+                "metadata": {
+                    "model": self.model_name,
+                    "device": self.device,
+                    "asr_runtime_sec": asr_result["runtime_sec"],
+                    "diar_runtime_sec": diar_result["runtime_sec"],
+                }
+            }
+        finally:
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            logger.info("[Pipeline] GPU/RAM cache cleared")
 
 ml_pipeline = MLPipeline()

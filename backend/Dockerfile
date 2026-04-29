@@ -20,6 +20,7 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
     pip3 install --no-cache-dir torch==2.5.1+cu124 torchaudio==2.5.1+cu124 \
         --index-url https://download.pytorch.org/whl/cu124 && \
     pip3 install --no-cache-dir -r requirements.txt
+RUN python3 -c "import gigaam; gigaam.load_model('v3_e2e_rnnt')"
 
 COPY . .
 
