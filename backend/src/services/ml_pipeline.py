@@ -81,47 +81,28 @@ class MLPipeline:
         self.diar_pipeline.to(torch.device(self.device))
 
 
-    def preprocess_audio(self, audio_path: Path) -> tuple:
+    def preprocess_audio(self, audio_path: Path, unique_id: str) -> tuple:
         """
         Convert any input audio/video file to mono 16kHz WAV format.
 
         Uses FFmpeg via subprocess for secure execution.
         Temporary files are automatically cleaned up.
         """
-        logger.info(f"[Preprocess] Converting {audio_path.name} → WAV 16kHz mono")
-
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-            tmp_wav_path = Path(tmp_file.name)
+        logger.info(f"[Preprocess] Converting {audio_path.name}")
+        tmp_wav_path = Path(tempfile.gettempdir()) / f"prep_{unique_id}.wav"
 
         try:
-            result = subprocess.run(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-i", str(audio_path),
-                    "-ac", "1",
-                    "-ar", "16000",
-                    str(tmp_wav_path),
-                    "-loglevel", "error",
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+            result = subprocess.run(["ffmpeg", "-y", "-i", str(audio_path), "-ac", "1", "-ar", "16000", str(tmp_wav_path), "-loglevel", "error"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
-
             if result.returncode != 0:
-                logger.error(f"FFmpeg error: {result.stderr.decode()}")
                 raise RuntimeError("FFmpeg conversion failed")
 
             waveform, sr = sf.read(str(tmp_wav_path), dtype="float32")
-
-            duration = len(waveform) / sr
-            logger.info(f"[Preprocess] Duration: {duration:.1f}s")
-
             return waveform, sr
-
         finally:
-            if tmp_wav_path.exists():
-                tmp_wav_path.unlink()
+            if tmp_wav_path.exists(): tmp_wav_path.unlink()
+
 
     def split_into_chunks(self, waveform: np.ndarray, sr: int) -> List[tuple]:
         """
@@ -138,7 +119,7 @@ class MLPipeline:
         logger.info(f"[Chunking] {len(chunks)} chunks x {self.chunk_sec}s")
         return chunks
     
-    def run_asr(self, chunks: List[tuple], sr: int) -> Dict:
+    def run_asr(self, chunks: List[tuple], sr: int, unique_id: str) -> Dict:
         """        
         Perform automatic speech recognition with word-level timestamps.
 
@@ -149,33 +130,21 @@ class MLPipeline:
         """
         logger.info(f"[ASR] Starting ({len(chunks)} chunks)...")
         start_time = time.time()
-        
         all_words = []
         full_text_parts = []
-        
+        tmp_chunk_path = Path(tempfile.gettempdir()) / f"chunk_{unique_id}.wav"
+
         for i, (chunk, offset) in enumerate(chunks, start=1):
-            tmp_path = Path("/tmp/pipeline_chunk.wav")
-            sf.write(str(tmp_path), chunk, sr)
-            
-            result = self.asr_model.transcribe(str(tmp_path), word_timestamps=True)
-            chunk_text = result.text.strip()
-            full_text_parts.append(chunk_text)
-            
+            sf.write(str(tmp_chunk_path), chunk, sr)
+            result = self.asr_model.transcribe(str(tmp_chunk_path), word_timestamps=True)
+            full_text_parts.append(result.text.strip())
             for w in result.words:
-                all_words.append({
-                    "word": w.text,
-                    "start": round(w.start + offset, 3),
-                    "end": round(w.end + offset, 3),
-                })
-        
-        runtime = time.time() - start_time
-        logger.info(f"[ASR] Done in {runtime:.2f}s | Words: {len(all_words)}")
-        
-        return {
-            "text": " ".join(full_text_parts),
-            "words": all_words,
-            "runtime_sec": round(runtime, 3),
-        }
+                all_words.append({"word": w.text, "start": round(w.start + offset, 3), "end": round(w.end + offset, 3)})
+
+        if tmp_chunk_path.exists(): tmp_chunk_path.unlink()
+
+        return {"text": " ".join(full_text_parts), "words": all_words,
+                "runtime_sec": round(time.time() - start_time, 3)}
     
     def run_diarization(self, waveform: np.ndarray, sr: int) -> Dict:
         """
@@ -316,7 +285,7 @@ class MLPipeline:
 
         return result
     
-    def process(self, audio_path: str) -> Dict[str, Any]:
+    def process(self, audio_path: str, unique_id: str) -> Dict[str, Any]:
         """
         Execute full speech processing pipeline.
 
@@ -325,41 +294,26 @@ class MLPipeline:
         - Speaker segments
         - Performance metrics
         """
-        audio_path = Path(audio_path)
-        logger.info(f"[Pipeline] Processing: {audio_path.name}")
-        
-        pipeline_start = time.time()
-        
         self._load_models()
-        
-        waveform, sr = self.preprocess_audio(audio_path)
+        waveform, sr = self.preprocess_audio(Path(audio_path), unique_id)
         duration_sec = len(waveform) / sr
-        
+
         chunks = self.split_into_chunks(waveform, sr)
-        asr_result = self.run_asr(chunks, sr)
+        asr_result = self.run_asr(chunks, sr, unique_id)
         diar_result = self.run_diarization(waveform, sr)
+
         merged_words = self.merge_asr_diarization(asr_result, diar_result)
         segments = self.build_segments(merged_words)
-        
-        total_runtime = time.time() - pipeline_start
-        rtf = total_runtime / duration_sec
-        
-        logger.info(f"[Pipeline] Done | Runtime: {total_runtime:.2f}s | RTF: {rtf:.3f}")
-        
+
         return {
             "speakers": diar_result["speakers"],
             "segments": segments,
             "full_text": asr_result["text"],
             "duration_sec": round(duration_sec, 3),
-            "runtime_sec": round(total_runtime, 3),
-            "rtf": round(rtf, 4),
-            "metadata": {
-                "model": self.model_name,
-                "device": self.device,
-                "asr_runtime_sec": asr_result["runtime_sec"],
-                "diar_runtime_sec": diar_result["runtime_sec"],
-            }
+            "runtime_sec": round(time.time() - (time.time() - (asr_result["runtime_sec"] + diar_result["runtime_sec"])),
+                                 3),
+            "rtf": round((asr_result["runtime_sec"] + diar_result["runtime_sec"]) / duration_sec, 4),
+            "metadata": {"model": self.model_name, "device": self.device}
         }
-
 
 ml_pipeline = MLPipeline()

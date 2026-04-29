@@ -5,78 +5,80 @@ from pathlib import Path
 from typing import Optional
 from celery import Task
 
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
+from sqlalchemy import update
+
 from src.celery_app import celery_app
 from src.logger import setup_logger
-from src.db.database import async_session_maker
 from src.db.models import Meeting, MeetingStatus
 from src.services.s3 import s3_service
 from src.services.ml_pipeline import ml_pipeline
 from src.config import get_settings
-from sqlalchemy import update
-
-
 logger = setup_logger("worker")
 settings = get_settings()
 
 
-async def update_meeting_status(meeting_id: str, data: dict):
-    """Вспомогательная функция для обновления статуса в БД."""
+# --- 1. ИЗОЛИРОВАННЫЕ АСИНХРОННЫЕ "ВСПЫШКИ" ---
+
+async def _download_s3_isolated(storage_path: str, local_path: str):
+    """Отдельный цикл для скачивания."""
+    await s3_service.download_file(storage_path, local_path)
+
+
+async def _update_db_isolated(meeting_id: str, data: dict):
+    """Отдельный цикл для работы с БД."""
+    parsed_uuid = uuid.UUID(meeting_id)
+    engine = create_async_engine(settings.SQLALCHEMY_DATABASE_URI, poolclass=NullPool)
+    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     try:
-        parsed_uuid = uuid.UUID(meeting_id)
-    except ValueError:
-        logger.error(f"⚠️ Invalid UUID passed: {meeting_id}")
-        return
+        async with session_maker() as session:
+            query = update(Meeting).where(Meeting.id == parsed_uuid).values(**data)
+            await session.execute(query)
+            await session.commit()
+    except Exception as e:
+        logger.error(f"DB Error for {meeting_id}: {e}")
+    finally:
+        await engine.dispose()
 
-    async with async_session_maker() as session:
-        query = update(Meeting).where(Meeting.id == parsed_uuid).values(**data)
-        await session.execute(query)
-        await session.commit()
-        logger.info(f"Database updated for meeting {meeting_id}: {data.get('status')}")
 
+# --- 2. СИНХРОННЫЙ ВОРКЕР ---
 
 class BaseTask(Task):
-    """Базовый класс для автоматического логирования ошибок."""
-
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        meeting_id = kwargs.get("meeting_id")
-        if not meeting_id and args:
-            meeting_id = args[0]
-
+        meeting_id = kwargs.get("meeting_id") or (args[0] if args else None)
         logger.error(f"Task {task_id} failed: {exc}")
-
         if meeting_id:
-            try:
-                asyncio.run(update_meeting_status(meeting_id, {"status": MeetingStatus.FAILED}))
-            except Exception as db_exc:
-                logger.error(f"Failed to update DB inside on_failure: {db_exc}")
-
+            asyncio.run(_update_db_isolated(meeting_id, {"status": MeetingStatus.FAILED}))
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
 
-async def _process_audio_logic(meeting_id: str, storage_path: str, language: Optional[str] = None):
-    # Используем временную папку для работы с тяжелыми файлами.
+@celery_app.task(bind=True, base=BaseTask, name="process_audio_task")
+def process_audio_task(self, meeting_id: str, storage_path: str, language: Optional[str] = None):
+    """
+    Главная задача. Она СИНХРОННАЯ.
+    Никаких долгих Event Loops во время ML вычислений!
+    """
+    logger.info(f"--- [TASK STARTED] ID: {meeting_id} ---")
+
     temp_dir = Path(settings.UPLOAD_DIR)
     temp_dir.mkdir(parents=True, exist_ok=True)
-    local_path = temp_dir / f"orig_{storage_path}"
+
+    # Файл защищен от Race Condition уникальным ID
+    local_path = temp_dir / f"orig_{meeting_id}.audio"
 
     try:
-        logger.info(f"[Task {meeting_id}] Downloading from S3: {storage_path}")
-        
-        await s3_service.download_file(storage_path, str(local_path))
+        # ЭТАП 1: Скачивание (открыли петлю, скачали, закрыли петлю)
+        logger.info(f"[{meeting_id}] 1. Downloading audio...")
+        asyncio.run(_download_s3_isolated(storage_path, str(local_path)))
 
-        logger.info(f"[Task {meeting_id}] Executing ML pipeline (GigaAM + Pyannote)...")
+        # ЭТАП 2: Нейросети (строго синхронно, процессор занят, асинхронности нет)
+        logger.info(f"[{meeting_id}] 2. ML Pipeline working...")
+        result = ml_pipeline.process(str(local_path), unique_id=meeting_id)
 
-        # Тяжелый ML процесс в отдельном потоке, чтобы не блокировать asyncio.
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            ml_pipeline.process,
-            str(local_path)
-        )
-
-        logger.info(f"[Task {meeting_id}] Pipeline finished | RTF={result['rtf']:.3f}")
-
+        # ЭТАП 3: Сохранение (открыли новую петлю, записали, закрыли петлю)
+        logger.info(f"[{meeting_id}] 3. ML Done! Saving to DB...")
         transcript_data = {
             "speakers": result["speakers"],
             "segments": result["segments"],
@@ -91,25 +93,17 @@ async def _process_audio_logic(meeting_id: str, storage_path: str, language: Opt
             }
         }
 
-        await update_meeting_status(meeting_id, {
+        asyncio.run(_update_db_isolated(meeting_id, {
             "status": MeetingStatus.COMPLETED,
-            "transcript_data": transcript_data
-        })
+            "transcript_data": transcript_data,
+            "speakers_map": {spk: spk for spk in result["speakers"]}
+        }))
 
     except Exception as e:
-        logger.error(f"[Task {meeting_id}] Processing failed: {str(e)}", exc_info=True)
-        await update_meeting_status(meeting_id, {"status": MeetingStatus.FAILED})
+        logger.error(f"[{meeting_id}] CRITICAL ERROR: {str(e)}")
         raise e
 
     finally:
+        # Очистка диска
         if local_path.exists():
-            os.remove(local_path)
-            logger.info(f"[Task {meeting_id}] Temporary file removed")
-
-
-@celery_app.task(bind=True, base=BaseTask, name="process_audio_task")
-def process_audio_task(self, meeting_id: str, storage_path: str, language: Optional[str] = None):
-    """Точка входа Celery."""
-
-    logger.info(f"[Celery Task] Started job for meeting: {meeting_id}")
-    return asyncio.run(_process_audio_logic(meeting_id, storage_path, language))
+            local_path.unlink()

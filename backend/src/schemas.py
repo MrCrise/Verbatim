@@ -40,6 +40,8 @@ class MeetingBase(BaseModel):
     title: str
     status: MeetingStatus
     created_at: datetime
+    transcript_data: Optional[Dict[str, Any]] = None
+    duration: Optional[str] = "00:00"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -49,8 +51,8 @@ class MeetingSummary(MeetingBase):
     pass
 
 
+
 # Полная схема для страницы конкретной записи.
 class MeetingDetail(MeetingBase):
-    transcript_data: Optional[Dict[str, Any]] = None
     speakers_map: Dict[str, str]
     celery_task_id: Optional[str] = None

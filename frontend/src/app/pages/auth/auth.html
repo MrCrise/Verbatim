@@ -1,0 +1,129 @@
+<div class="min-h-screen bg-app-bg flex items-center justify-center px-4 font-montserrat">
+  <div class="w-full max-w-[398px]">
+    <!-- Card -->
+    <div class="bg-white rounded-[13px] border border-app-border shadow-sm px-9 py-8 flex flex-col gap-5">
+
+      <!-- Title -->
+      <div class="text-center">
+        <h1 class="text-xl font-bold text-black font-montserrat">Транскрибация Встреч</h1>
+        <p class="text-app-text-secondary text-[15px] font-normal mt-1">
+          Автоматическая транскрибация деловых встреч
+        </p>
+      </div>
+
+      <!-- Toggle Slider -->
+      <div class="relative w-full h-[27px] rounded-full bg-app-slider-bg overflow-hidden flex items-center cursor-pointer select-none">
+        <!-- Sliding pill -->
+        <div
+          class="absolute top-[2px] h-[23px] w-1/2 rounded-full bg-white shadow-sm transition-all duration-300"
+          [class.left-[2px]]="mode() === 'login'"
+          [class.left-[calc(50%-2px)]]="mode() === 'register'"
+        ></div>
+        <!-- Labels -->
+        <button
+          class="relative z-10 flex-1 text-center text-xs font-semibold text-black transition-colors"
+          (click)="setMode('login')"
+          type="button"
+        >Вход</button>
+        <button
+          class="relative z-10 flex-1 text-center text-xs font-semibold text-black transition-colors"
+          (click)="setMode('register')"
+          type="button"
+        >Регистрация</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      @if (mode() === 'login') {
+        <form (ngSubmit)="onLogin()" class="flex flex-col gap-4">
+          <!-- Email -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-black">Email</label>
+            <input
+              type="email"
+              [(ngModel)]="loginEmail"
+              name="loginEmail"
+              placeholder="example&#64;gmail.com"
+              class="w-full px-[10px] py-[7px] rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors"
+            />
+          </div>
+          <!-- Password -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-black">Пароль</label>
+            <input
+              type="password"
+              [(ngModel)]="loginPassword"
+              name="loginPassword"
+              placeholder="••••••••"
+              class="w-full px-[10px] py-[5px] rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors"
+            />
+          </div>
+          <!-- Submit -->
+          <button
+            type="submit"
+            class="w-full py-[6px] px-[11px] rounded-lg bg-black text-white text-sm font-semibold text-center hover:bg-gray-900 transition-colors mt-1"
+          >
+            Войти
+          </button>
+        </form>
+      }
+
+      <!-- REGISTER FORM -->
+      @if (mode() === 'register') {
+        <form (ngSubmit)="onRegister()" class="flex flex-col gap-4">
+          <!-- Name -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-black">Имя</label>
+            <input
+              type="text"
+              [(ngModel)]="registerName"
+              name="registerName"
+              placeholder="Иван Иванов"
+              class="w-full px-[10px] py-[7px] rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors"
+            />
+          </div>
+          <!-- Email -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-black">Email</label>
+            <input
+              type="email"
+              [(ngModel)]="registerEmail"
+              name="registerEmail"
+              placeholder="example&#64;gmail.com"
+              class="w-full px-[10px] py-[7px] rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors"
+            />
+          </div>
+          <!-- Password -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-black">Пароль</label>
+            <input
+              type="password"
+              [(ngModel)]="registerPassword"
+              name="registerPassword"
+              placeholder="••••••••"
+              class="w-full px-[10px] py-[5px] rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors"
+            />
+          </div>
+          <!-- Confirm Password -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-black">Повторите пароль</label>
+            <input
+              type="password"
+              [(ngModel)]="registerConfirmPassword"
+              name="registerConfirmPassword"
+              placeholder="••••••••"
+              class="w-full px-[10px] py-[5px] rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors"
+            />
+          </div>
+          <!-- Submit -->
+          <button
+            type="submit"
+            class="w-full py-[6px] px-[10px] rounded-lg bg-black text-white text-sm font-semibold text-center hover:bg-gray-900 transition-colors mt-1"
+          >
+            Зарегестрироваться
+          </button>
+        </form>
+      }
+
+    </div>
+  </div>
+</div>
