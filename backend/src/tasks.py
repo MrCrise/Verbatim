@@ -25,7 +25,7 @@ async def update_meeting_status(meeting_id: str, data: dict):
     try:
         parsed_uuid = uuid.UUID(meeting_id)
     except ValueError:
-        logger.error(f"⚠️ Invalid UUID passed: {meeting_id}")
+        logger.error(f"Invalid UUID passed: {meeting_id}")
         return
 
     async with async_session_maker() as session:

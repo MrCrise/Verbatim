@@ -1,4 +1,5 @@
 import uuid
+import traceback
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
@@ -30,9 +31,8 @@ async def upload_media(
     Основной эндпоинт для загрузки медиаконтента.
     """
 
-    # Кринж валидация расширения файла, поменять на список расширений из конфига.
     file_extension = Path(file.filename).suffix.lower()
-    if not file.filename.endswith((".mp3", ".wav", ".m4a", ".mp4", ".webm")):
+    if file_extension not in (".mp3", ".wav", ".m4a", ".mp4", ".webm"):
         raise HTTPException(status_code=400, detail="Unsupported file format")
     
     # Создание записи в БД.
@@ -66,10 +66,9 @@ async def upload_media(
 
         return {"meeting_id": new_meeting.id,
                 "task_id": task.id}
-    
+
     except Exception as e:
-        import traceback
-        logger.error(f"Upload failed: {str(e)}")
-        logger.error(traceback.format_exc())
+        logger.error(f"Upload failed: {str(e)}", exc_info=True)
+        new_meeting.status = MeetingStatus.FAILED
         await db.commit()
         raise HTTPException(status_code=500, detail="S3 Upload Error")

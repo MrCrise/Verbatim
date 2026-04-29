@@ -154,10 +154,15 @@ class MLPipeline:
         full_text_parts = []
         
         for i, (chunk, offset) in enumerate(chunks, start=1):
-            tmp_path = Path("/tmp/pipeline_chunk.wav")
-            sf.write(str(tmp_path), chunk, sr)
-            
-            result = self.asr_model.transcribe(str(tmp_path), word_timestamps=True)
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_chunk_file:
+                tmp_path = Path(tmp_chunk_file.name)
+            try:
+                sf.write(str(tmp_path), chunk, sr)
+                result = self.asr_model.transcribe(str(tmp_path), word_timestamps=True)
+            finally:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+
             chunk_text = result.text.strip()
             full_text_parts.append(chunk_text)
             
@@ -216,16 +221,16 @@ class MLPipeline:
         logger.info("[Merge] Merging words with speakers...")
         
         def find_speaker(word_start, word_end, diar_segments):
-            word_mid = (word_start + word_end) / 2
-            speakers = []
+            best_speaker = "unknown"
+            best_overlap = 0.0
+
             for seg in diar_segments:
-                if seg["start"] <= word_mid <= seg["end"]:
-                    speakers.append(seg["speaker"])
-            
-            if not speakers:
-                return "unknown"
-            uniq = sorted(set(speakers))
-            return uniq[0] if len(uniq) == 1 else uniq[0]
+                overlap = max(0.0, min(word_end, seg["end"]) - max(word_start, seg["start"]))
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_speaker = seg["speaker"]
+
+            return best_speaker
         
         merged_words = []
         for w in asr_result["words"]:
