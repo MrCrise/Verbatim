@@ -54,3 +54,15 @@ class MeetingDetail(MeetingBase):
     transcript_data: Optional[Dict[str, Any]] = None
     speakers_map: Dict[str, str]
     celery_task_id: Optional[str] = None
+
+
+# Схема для переименования спикера.
+class SpeakerUpdateRequest(BaseModel):
+    speaker_id: str
+    real_name: str
+
+
+# Схема для исправления текста.
+class SegmentUpdateRequest(BaseModel):
+    segment_index: int  # Порядковый номер сегмента в массиве.
+    new_text: str       # Исправленный текст.
