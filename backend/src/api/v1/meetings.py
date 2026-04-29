@@ -1,13 +1,13 @@
 import uuid
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.db.database import get_db
 from src.db.models import Meeting, User
-from src.schemas import MeetingSummary, MeetingDetail
+from src.schemas import MeetingSummary, MeetingDetail, SpeakerUpdateRequest, SegmentUpdateRequest
 from src.services.s3 import s3_service
 from src.dependencies import get_current_user
 from src.logger import setup_logger
@@ -114,3 +114,59 @@ async def get_meeting_details(
 
     meeting = await get_meeting_for_owner(meeting_id, db, current_user.id)
     return meeting
+
+
+@router.patch("/{meeting_id}/speakers")
+async def update_speaker_name(
+    meeting_id: uuid.UUID,
+    payload: SpeakerUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Обновить имя спикера в карте speakers_map.
+    """
+
+    meeting = await get_meeting_for_owner(meeting_id, db, current_user.id)
+
+    current_map = dict(meeting.speakers_map or {})
+    current_map[payload.speaker_id] = payload.real_name
+
+    meeting.speakers_map = current_map
+    await db.commit()
+
+    return {"status": "success", "speakers_map": meeting.speakers_map}
+
+
+@router.patch("/{meeting_id}/segments")
+async def update_segment_text(
+    meeting_id: uuid.UUID,
+    payload: SegmentUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Исправить опечатку нейросети в конкретном сегменте текста.
+    """
+
+    meeting = await get_meeting_for_owner(meeting_id, db, current_user.id)
+    
+    if not meeting.transcript_data or "segments" not in meeting.transcript_data:
+        raise HTTPException(status_code=400, detail="Transcript data is empty")
+        
+    segments = meeting.transcript_data["segments"]
+
+    if payload.segment_index < 0 or payload.segment_index >= len(segments):
+        raise HTTPException(status_code=400, detail="Invalid segment index")
+
+    import copy
+    new_transcript_data = copy.deepcopy(meeting.transcript_data)
+
+    new_transcript_data["segments"][payload.segment_index]["text"] = payload.new_text
+
+    new_transcript_data["full_text"] = " ".join([s["text"] for s in new_transcript_data["segments"]])
+
+    meeting.transcript_data = new_transcript_data
+    await db.commit()
+
+    return {"status": "success", "updated_segment": new_transcript_data["segments"][payload.segment_index]}
