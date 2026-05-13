@@ -13,7 +13,6 @@ import { DurationPipe } from '../../pipes/duration.pipe';
 })
 export class MeetingPage implements OnInit, OnDestroy {
   isAdmin = false;
-  // ДОБАВЛЕНО: Ссылка на HTML5 аудио-плеер
   @ViewChild('audioPlayer') audioPlayer!: ElementRef<HTMLAudioElement>;
 
   meetingId: string = '';
@@ -65,7 +64,6 @@ export class MeetingPage implements OnInit, OnDestroy {
     });
   }
 
-  // --- МАГИЯ: Клик на таймкод и проигрывание ---
   playFrom(timeInSeconds: number) {
     if (this.audioPlayer && this.audioPlayer.nativeElement) {
       const player = this.audioPlayer.nativeElement;

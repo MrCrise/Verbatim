@@ -44,26 +44,26 @@ class MeetingBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Схема для списка записей.
+# --- Список записей ---
 class MeetingSummary(MeetingBase):
     duration_sec: Optional[float] = None
     participant_count: int = 0
 
 
-# Полная схема для страницы конкретной записи.
+# --- Схема для страницы конкретной записи ---
 class MeetingDetail(MeetingBase):
     transcript_data: Optional[Dict[str, Any]] = None
     speakers_map: Optional[Dict[str, str]] = None
     celery_task_id: Optional[str] = None
     duration_sec: Optional[float] = None
 
-# Схема для переименования спикера.
+# --- Схема для переименования спикера ---
 class SpeakerUpdateRequest(BaseModel):
     speaker_id: str
     real_name: str
 
 
-# Схема для исправления текста.
+# --- Схема для исправления текста ---
 class SegmentUpdateRequest(BaseModel):
-    segment_index: int  # Порядковый номер сегмента в массиве.
-    new_text: str       # Исправленный текст.
+    segment_index: int
+    new_text: str

@@ -64,7 +64,6 @@ export class UploadPage {
     if (!this.selectedFile) return;
 
     this.uploading = true;
-    // ПЕРЕДАЕМ НАЗВАНИЕ В API
     this.api.uploadFile(this.selectedFile, this.meetingTitle).subscribe({
       next: () => {
         this.router.navigate(['/dashboard']);

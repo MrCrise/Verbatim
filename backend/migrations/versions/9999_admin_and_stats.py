@@ -15,10 +15,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Добавляем колонку последнего входа пользователям
     op.add_column('users', sa.Column('last_login', sa.DateTime(), nullable=True))
 
-    # Добавляем статистику встречам
     op.add_column('meetings', sa.Column('duration_sec', sa.Float(), nullable=True, server_default='0.0'))
     op.add_column('meetings', sa.Column('file_size_bytes', sa.Integer(), nullable=True, server_default='0'))
 

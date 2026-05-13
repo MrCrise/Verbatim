@@ -65,7 +65,6 @@ export class ApiService {
     return this.http.patch(`${this.baseUrl}/meetings/${meetingId}/speakers`, { speaker_id: speakerId, real_name: realName }, { headers: this.getHeaders() });
   }
 
-  // Методы Админки
   getAdminStats(): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/stats`, { headers: this.getHeaders() });
   }

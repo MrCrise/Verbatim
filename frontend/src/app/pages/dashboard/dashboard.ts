@@ -50,7 +50,6 @@ export class DashboardPage implements OnInit, OnDestroy {
         let hasProcessing = false;
         if (Array.isArray(res)) {
           this.meetings = res;
-          // Проверяем, есть ли файлы в процессе, чтобы запустить автообновление
           hasProcessing = res.some(m => m.status === 'PROCESSING' || m.status === 'UPLOADED');
         }
         this.cdr.detectChanges();
@@ -83,7 +82,7 @@ export class DashboardPage implements OnInit, OnDestroy {
             if (!hasProcessing) this.stopPolling();
           });
         });
-      }, 4000); // Опрашиваем каждые 4 секунды
+      }, 4000);
     });
   }
 
