@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime # <--- ДОБАВЛЕН datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,10 +10,8 @@ from src.schemas import UserCreate, UserResponse, Token
 from src.security import get_password_hash, verify_password, create_access_token
 from src.config import get_settings
 
-
 router = APIRouter()
 settings = get_settings()
-
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -26,7 +24,9 @@ async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db
     new_user = User(
         email=user_data.email,
         hashed_password=get_password_hash(user_data.password),
-        full_name=user_data.full_name
+        full_name=user_data.full_name,
+        # АВТО-АДМИН:
+        is_admin=(user_data.email == settings.ADMIN_EMAIL)
     )
 
     db.add(new_user)
@@ -52,6 +52,10 @@ async def login_for_access_token(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # ОБНОВЛЯЕМ ВРЕМЯ ВИЗИТА
+    user.last_login = datetime.utcnow()
+    await db.commit()
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

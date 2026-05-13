@@ -46,7 +46,8 @@ class MeetingBase(BaseModel):
 
 # Схема для списка записей.
 class MeetingSummary(MeetingBase):
-    pass
+    duration_sec: Optional[float] = None
+    participant_count: int = 0
 
 
 # Полная схема для страницы конкретной записи.
@@ -54,7 +55,7 @@ class MeetingDetail(MeetingBase):
     transcript_data: Optional[Dict[str, Any]] = None
     speakers_map: Optional[Dict[str, str]] = None
     celery_task_id: Optional[str] = None
-
+    duration_sec: Optional[float] = None
 
 # Схема для переименования спикера.
 class SpeakerUpdateRequest(BaseModel):

@@ -1,0 +1,126 @@
+<div class="min-h-screen bg-app-bg font-montserrat flex flex-col pb-20">
+  <nav class="w-full h-[70px] bg-white border-b border-black/10 backdrop-blur-[9.35px] flex items-center px-6 lg:px-[100px] sticky top-0 z-50">
+    <div class="flex items-center justify-between w-full gap-4">
+      <span routerLink="/dashboard" class="text-black font-bold text-xl cursor-pointer">Транскрибация Встреч</span>
+      <div class="flex items-center gap-3">
+        <button routerLink="/dashboard" class="flex items-center justify-center px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold hover:bg-gray-50">Мои встречи</button>
+
+        <button routerLink="/upload" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold hover:bg-gray-50">
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none"><path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86308 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.1402 2.1889L8.09191 10.8049" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Загрузить файл
+        </button>
+
+        <button class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg bg-black text-white text-sm font-semibold">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Панель админа
+        </button>
+      </div>
+      <button (click)="onLogout()" class="px-3 py-1 rounded-lg border border-app-icon text-app-text-icon text-sm font-medium hover:bg-gray-50">Выйти</button>
+    </div>
+  </nav>
+
+  <main class="flex-1 px-6 lg:px-[100px] py-10 max-w-[1440px] mx-auto w-full">
+    <div class="mb-10">
+      <h1 class="text-4xl font-bold text-black mb-2">Админ панель</h1>
+      <p class="text-app-text-secondary text-lg">Управление пользователями и статистика системы</p>
+    </div>
+
+    @if (stats) {
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <!-- Карточки -->
+        <div class="bg-white rounded-xl border border-app-border p-6 flex items-center gap-5 shadow-sm">
+          <div class="w-12 h-12 bg-app-input-bg rounded-xl flex items-center justify-center shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <div><div class="text-[10px] font-bold text-app-text-secondary uppercase">Пользователей</div><div class="text-2xl font-bold">{{stats.total_users}}</div></div>
+        </div>
+        <div class="bg-white rounded-xl border border-app-border p-6 flex items-center gap-5 shadow-sm">
+          <div class="w-12 h-12 bg-app-input-bg rounded-xl flex items-center justify-center shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+          </div>
+          <div><div class="text-[10px] font-bold text-app-text-secondary uppercase">Встреч</div><div class="text-2xl font-bold">{{stats.total_meetings}}</div></div>
+        </div>
+        <div class="bg-white rounded-xl border border-app-border p-6 flex items-center gap-5 shadow-sm">
+          <div class="w-12 h-12 bg-app-input-bg rounded-xl flex items-center justify-center shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div><div class="text-[10px] font-bold text-app-text-secondary uppercase">Длительность</div><div class="text-2xl font-bold">{{formatTimeComplex(stats.total_duration_sec)}}</div></div>
+        </div>
+        <div class="bg-white rounded-xl border border-app-border p-6 flex items-center gap-5 shadow-sm">
+          <div class="w-12 h-12 bg-app-input-bg rounded-xl flex items-center justify-center shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </div>
+          <div><div class="text-[10px] font-bold text-app-text-secondary uppercase">Хранилище</div><div class="text-2xl font-bold">{{formatBytes(stats.total_storage_bytes)}}</div></div>
+        </div>
+      </div>
+    }
+
+    <div class="bg-white rounded-xl border border-app-border p-6 shadow-sm">
+      <div class="flex justify-between items-start mb-8">
+        <div><h2 class="text-xl font-bold">Пользователи системы</h2><p class="text-sm text-app-text-secondary">Список всех зарегистрированных пользователей</p></div>
+        <div class="flex flex-col items-end gap-3">
+          <input type="text" [(ngModel)]="searchQuery" placeholder="Поиск по имени или email..." class="px-4 py-2 w-64 bg-app-input-bg rounded-lg text-sm outline-none focus:ring-1 focus:ring-black">
+          <button (click)="openAddUserModal()" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-bold hover:bg-gray-50">+ Добавить пользователя</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-100 text-xs font-bold uppercase text-gray-400">
+              <th class="py-4 px-2">Пользователь</th>
+              <th class="py-4 px-2">Email</th>
+              <th class="py-4 px-2 text-center flex items-center justify-center gap-2">
+                Роль <button (click)="toggleRoleEditMode()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+              </th>
+              <th class="py-4 px-2 text-center">Активен с</th>
+              <th class="py-4 px-2 text-center">Последний визит</th>
+              <th class="py-4 px-2 text-center">Встречи</th>
+              <th class="py-4 px-2 text-right">Общее время</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm">
+            @for (u of filteredUsers; track u.id) {
+              <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                <td class="py-4 px-2 font-bold">{{u.full_name}}</td>
+                <td class="py-4 px-2 text-gray-500">{{u.email}}</td>
+                <td class="py-4 px-2 text-center">
+                  @if (isRoleEditMode) {
+                    <button (click)="changeRole(u)" [class.bg-black]="u.is_admin" [class.text-white]="u.is_admin" class="px-3 py-1 rounded-full border border-black text-[10px] font-bold uppercase tracking-wider">
+                      {{ u.is_admin ? 'Гл. Админ' : 'Пользователь' }}
+                    </button>
+                  } @else {
+                    <span [class.bg-black]="u.is_admin" [class.text-white]="u.is_admin" class="px-3 py-1 rounded-full border border-gray-200 text-[10px] font-bold uppercase">
+                      {{ u.is_admin ? 'Гл. Админ' : 'Пользователь' }}
+                    </span>
+                  }
+                </td>
+                <td class="py-4 px-2 text-center text-gray-400">{{formatDateOnly(u.created_at)}}</td>
+                <td class="py-4 px-2 text-center text-gray-400">{{formatDateTime(u.last_login)}}</td>
+                <td class="py-4 px-2 text-center font-bold text-blue-600">{{u.meetings_count}}</td>
+                <td class="py-4 px-2 text-right text-gray-500">{{formatTimeComplex(u.total_duration_sec)}}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  @if (showAddUserModal) {
+    <div class="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4 backdrop-blur-sm" (click)="closeAddUserModal()">
+      <div class="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="text-center mb-8">
+          <h3 class="text-xl font-bold">Транскрибация Встреч</h3>
+          <p class="text-sm text-gray-500">Регистрация нового пользователя</p>
+        </div>
+        <form (ngSubmit)="onCreateUser()" class="space-y-4">
+          <div><label class="text-xs font-bold uppercase">Имя</label><input type="text" [(ngModel)]="newUser.name" name="n" class="w-full p-2 bg-gray-100 rounded-lg outline-none"></div>
+          <div><label class="text-xs font-bold uppercase">Email</label><input type="email" [(ngModel)]="newUser.email" name="e" class="w-full p-2 bg-gray-100 rounded-lg outline-none"></div>
+          <div><label class="text-xs font-bold uppercase">Пароль</label><input type="password" [(ngModel)]="newUser.password" name="p" class="w-full p-2 bg-gray-100 rounded-lg outline-none"></div>
+          <button type="submit" class="w-full py-3 bg-black text-white rounded-lg font-bold hover:bg-gray-800">Создать</button>
+        </form>
+      </div>
+    </div>
+  }
+</div>
