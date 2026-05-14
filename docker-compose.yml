@@ -33,7 +33,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: verbatim_worker
-    command: celery -A src.celery_app worker --loglevel=info --concurrency=1
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=2
     env_file:
       - .env
     environment:
@@ -48,13 +48,13 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-#    deploy:
-#      resources:
-#        reservations:
-#          devices:
-#            - driver: nvidia
-#              count: 1
-#              capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   # --- FRONTEND (Nginx) ---
   frontend:

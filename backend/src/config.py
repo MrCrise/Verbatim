@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     # --- FILES ---
     UPLOAD_DIR: str = "temp_uploads"
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
     ADMIN_EMAIL: str = "admin@gmail.com"
 
