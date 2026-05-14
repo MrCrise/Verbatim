@@ -39,13 +39,14 @@ class MLPipeline:
         Models are loaded lazily to optimize worker startup time.
         """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model_name = "v3_e2e_rnnt"
-        self.chunk_sec = 24.0
-        self.target_sr = 16000
-        self.overlap_sec = 1
-        self.min_speakers = 2
-        self.max_speakers = 8
+        self.model_name = settings.ML_GIGAAM_MODEL_NAME
+        self.chunk_sec = settings.ML_ASR_CHUNK_SEC
+        self.target_sr = settings.ML_TARGET_SR
+        self.overlap_sec = settings.ML_ASR_OVERLAP_SEC
 
+        self.min_speakers = settings.ML_DIAR_MIN_SPEAKERS
+        self.max_speakers = settings.ML_DIAR_MAX_SPEAKERS
+        
         self.asr_model = None
         self.diar_pipeline = None
 
@@ -80,7 +81,7 @@ class MLPipeline:
 
             try:
                 self.diar_pipeline = DiarizationPipeline.from_pretrained(
-                    "pyannote/speaker-diarization-3.1",
+                    settings.ML_DIAR_PIPELINE_NAME,
                     token=hf_token,
                 )
                 loaded = True
@@ -90,7 +91,7 @@ class MLPipeline:
             if not loaded:
                 try:
                     self.diar_pipeline = DiarizationPipeline.from_pretrained(
-                        "pyannote/speaker-diarization-3.1",
+                        settings.ML_DIAR_PIPELINE_NAME,
                         use_auth_token=hf_token,
                     )
                     loaded = True
@@ -101,7 +102,7 @@ class MLPipeline:
                 from huggingface_hub import login
                 login(token=hf_token, add_to_git_credential=False)
                 self.diar_pipeline = DiarizationPipeline.from_pretrained(
-                    "pyannote/speaker-diarization-3.1"
+                    settings.ML_DIAR_PIPELINE_NAME,
                 )
                 loaded = True
 
@@ -114,10 +115,9 @@ class MLPipeline:
                 "Check your HF_TOKEN permissions as well."
             )
         if self.diar_pipeline is not None:
-            thr = float(os.getenv("DIAR_CLUSTER_THRESHOLD", "0.65"))
-            min_cluster = int(os.getenv("DIAR_MIN_CLUSTER_SIZE", "15"))
-            min_off = float(os.getenv("DIAR_MIN_DUR_OFF", "0.25"))
-
+            thr = settings.ML_DIAR_CLUSTER_THRESHOLD
+            min_cluster = settings.ML_DIAR_MIN_CLUSTER_SIZE
+            min_off = settings.ML_DIAR_MIN_DUR_OFF
             try:
                 self.diar_pipeline.instantiate({
                     "clustering": {
@@ -291,8 +291,9 @@ class MLPipeline:
 
         segments = sorted(segments, key=lambda x: (x["start"], x["end"]))
 
-        MERGE_GAP = 0.25
-        MIN_DUR = 0
+        MERGE_GAP = settings.ML_DIAR_SMOOTH_MERGE_GAP
+        MIN_DUR = settings.ML_DIAR_SMOOTH_MIN_DUR
+
 
         smoothed: List[Dict] = []
         for seg in segments:
@@ -343,7 +344,7 @@ class MLPipeline:
                 return best_speaker
 
             mid = (word_start + word_end) / 2
-            TOL = 0.35
+            TOL = settings.ML_WORD_SPEAKER_TOL
             nearest = None
             nearest_dist = 1e9
 
@@ -468,7 +469,7 @@ class MLPipeline:
         words = sorted(merged_words, key=lambda x: (x["start"], x["end"]))
         diar = sorted(diar_segments, key=lambda x: (x["start"], x["end"]))
 
-        TOL = 0.05 
+        TOL = settings.ML_ALIGN_TOL
 
         out = []
         wi = 0
@@ -504,9 +505,9 @@ class MLPipeline:
                 "text": " ".join(w["word"] for w in seg_words),
             })
 
-        MERGE_GAP = 2.0
-        SHORT_WORDS = 4
-        SHORT_DUR = 1.2
+        MERGE_GAP = settings.ML_SEG_MERGE_GAP
+        SHORT_WORDS = settings.ML_SEG_SHORT_WORDS
+        SHORT_DUR = settings.ML_SEG_SHORT_DUR
 
         merged = []
         for seg in out:
