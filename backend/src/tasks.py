@@ -115,7 +115,8 @@ def process_audio_task(self, meeting_id: str, storage_path: str, language: Optio
         asyncio.run(_update_db_isolated(meeting_id, {
             "status": MeetingStatus.COMPLETED,
             "transcript_data": transcript_data,
-            "speakers_map": speakers_map
+            "speakers_map": speakers_map,
+            "duration_sec": result["duration_sec"]
         }))
 
     except Exception as e:

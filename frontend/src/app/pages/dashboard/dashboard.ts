@@ -2,15 +2,18 @@ import { Component, OnInit, NgZone, OnDestroy, ChangeDetectorRef } from '@angula
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService, MeetingResponse } from '../../api.service';
+import { DurationPipe } from '../../pipes/duration.pipe';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, DurationPipe],
   templateUrl: './dashboard.html',
 })
+
 export class DashboardPage implements OnInit, OnDestroy {
-  userName = 'Системный Пользователь';
+  userName = 'Загрузка...';
+  isAdmin = false;
   meetings: MeetingResponse[] =[];
   private pollingTimer: any;
 
@@ -22,7 +25,23 @@ export class DashboardPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.loadUser();
     this.loadMeetings();
+    this.api.getCurrentUser().subscribe(user => {
+      this.isAdmin = user.is_admin;
+      this.userName = user.full_name || user.email;
+    });
+  }
+
+  loadUser() {
+    this.api.getCurrentUser().subscribe({
+      next: (user) => {
+        this.userName = user.full_name || user.email;
+        this.isAdmin = user.is_admin;
+        this.cdr.detectChanges();
+      },
+      error: () => this.onLogout()
+    });
   }
 
   loadMeetings() {
@@ -31,7 +50,6 @@ export class DashboardPage implements OnInit, OnDestroy {
         let hasProcessing = false;
         if (Array.isArray(res)) {
           this.meetings = res;
-          // Проверяем, есть ли файлы в процессе, чтобы запустить автообновление
           hasProcessing = res.some(m => m.status === 'PROCESSING' || m.status === 'UPLOADED');
         }
         this.cdr.detectChanges();
@@ -64,7 +82,7 @@ export class DashboardPage implements OnInit, OnDestroy {
             if (!hasProcessing) this.stopPolling();
           });
         });
-      }, 4000); // Опрашиваем каждые 4 секунды
+      }, 4000);
     });
   }
 

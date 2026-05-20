@@ -3,15 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService, MeetingResponse } from '../../api.service';
+import { DurationPipe } from '../../pipes/duration.pipe';
 
 @Component({
   selector: 'app-meeting',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, DurationPipe],
   templateUrl: './meeting.html',
 })
 export class MeetingPage implements OnInit, OnDestroy {
-  // ДОБАВЛЕНО: Ссылка на HTML5 аудио-плеер
+  isAdmin = false;
   @ViewChild('audioPlayer') audioPlayer!: ElementRef<HTMLAudioElement>;
 
   meetingId: string = '';
@@ -32,6 +33,7 @@ export class MeetingPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.api.getCurrentUser().subscribe(user => this.isAdmin = user.is_admin);
     this.meetingId = this.route.snapshot.paramMap.get('id') || '';
     if (this.meetingId) {
       this.loadMeeting();
@@ -45,7 +47,8 @@ export class MeetingPage implements OnInit, OnDestroy {
         this.meeting = res;
         if (this.meeting.transcript_data?.speakers) {
           this.meeting.transcript_data.speakers.forEach(spk => {
-            this.speakersMap[spk] = spk;
+
+            this.speakersMap[spk] = this.meeting!.speakers_map?.[spk] || spk;
           });
         }
       },
@@ -61,7 +64,6 @@ export class MeetingPage implements OnInit, OnDestroy {
     });
   }
 
-  // --- МАГИЯ: Клик на таймкод и проигрывание ---
   playFrom(timeInSeconds: number) {
     if (this.audioPlayer && this.audioPlayer.nativeElement) {
       const player = this.audioPlayer.nativeElement;
@@ -111,8 +113,17 @@ export class MeetingPage implements OnInit, OnDestroy {
     this.editingSpeaker = speakerId;
   }
 
-  saveRenaming() {
-    this.editingSpeaker = null;
+  saveRenaming(speakerId: string) {
+    this.editingSpeaker = null; //
+    const newName = this.speakersMap[speakerId];
+
+    this.api.updateSpeaker(this.meetingId, speakerId, newName).subscribe({
+      next: () => console.log(`Спикер ${speakerId} переименован в ${newName}`),
+      error: (err) => {
+        console.error('Ошибка сохранения', err);
+        alert('Не удалось сохранить имя спикера. Проверьте соединение.');
+      }
+    });
   }
 
   setFilter(speakerId: string | null) {

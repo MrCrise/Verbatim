@@ -7,9 +7,9 @@ export interface MeetingResponse {
   title: string;
   status: string;
   created_at: string;
-  duration?: string;
-  participantCount?: number;
-  participants?: { name: string }[];
+  duration_sec?: number;
+  participant_count?: number;
+  speakers_map?: Record<string, string>;
   transcript_data?: {
     segments: any[];
     full_text: string;
@@ -33,15 +33,17 @@ export class ApiService {
   login(formData: FormData): Observable<any> {
     return this.http.post(`${this.baseUrl}/auth/login`, formData).pipe(
       tap((res: any) => {
-        if (res && res.access_token) {
-          localStorage.setItem('token', res.access_token);
-        }
+        if (res && res.access_token) localStorage.setItem('token', res.access_token);
       })
     );
   }
 
   register(data: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/auth/register`, data);
+  }
+
+  getCurrentUser(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/debug/me`, { headers: this.getHeaders() });
   }
 
   getMeetings(): Observable<MeetingResponse[]> {
@@ -52,14 +54,27 @@ export class ApiService {
     return this.http.get<MeetingResponse>(`${this.baseUrl}/meetings/${id}`, { headers: this.getHeaders() });
   }
 
-  // ДОБАВЛЕН ПАРАМЕТР TITLE
   uploadFile(file: File, title?: string): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
-    if (title) {
-      formData.append('title', title);
-    }
+    if (title) formData.append('title', title);
     return this.http.post(`${this.baseUrl}/transcribe/upload`, formData, { headers: this.getHeaders() });
+  }
+
+  updateSpeaker(meetingId: string, speakerId: string, realName: string): Observable<any> {
+    return this.http.patch(`${this.baseUrl}/meetings/${meetingId}/speakers`, { speaker_id: speakerId, real_name: realName }, { headers: this.getHeaders() });
+  }
+
+  getAdminStats(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/stats`, { headers: this.getHeaders() });
+  }
+
+  getAdminUsers(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/admin/users`, { headers: this.getHeaders() });
+  }
+
+  updateUserRole(userId: string, isAdmin: boolean): Observable<any> {
+    return this.http.patch(`${this.baseUrl}/admin/users/${userId}/role?is_admin=${isAdmin}`, {}, { headers: this.getHeaders() });
   }
 
   downloadAudio(id: string): Observable<Blob> {

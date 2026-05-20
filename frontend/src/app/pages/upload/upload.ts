@@ -11,6 +11,7 @@ import { ApiService } from '../../api.service';
   templateUrl: './upload.html',
 })
 export class UploadPage {
+  isAdmin = false;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   userName = 'Системный Пользователь';
@@ -19,7 +20,9 @@ export class UploadPage {
   meetingDescription = '';
   uploading = false;
 
-  constructor(private router: Router, private api: ApiService) {}
+  constructor(private router: Router, private api: ApiService) {
+    this.api.getCurrentUser().subscribe(user => this.isAdmin = user.is_admin);
+  }
 
   onLogout() {
     localStorage.removeItem('token');
@@ -61,7 +64,6 @@ export class UploadPage {
     if (!this.selectedFile) return;
 
     this.uploading = true;
-    // ПЕРЕДАЕМ НАЗВАНИЕ В API
     this.api.uploadFile(this.selectedFile, this.meetingTitle).subscribe({
       next: () => {
         this.router.navigate(['/dashboard']);

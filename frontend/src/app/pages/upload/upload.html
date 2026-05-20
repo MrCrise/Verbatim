@@ -6,22 +6,32 @@
 <!-- Navigation -->
   <nav class="w-full h-[70px] bg-white border-b border-black/10 backdrop-blur-[9.35px] flex items-center px-6 lg:px-[100px] sticky top-0 z-50">
     <div class="flex items-center justify-between w-full gap-4">
-      <!-- ФИКС: Кликабельный логотип -->
+      <!-- Кликабельный логотип -->
       <span routerLink="/dashboard" class="text-black font-bold text-xl whitespace-nowrap shrink-0 cursor-pointer hover:opacity-80 transition-opacity">Транскрибация Встреч</span>
 
-      <div class="flex items-center gap-3">
-        <button routerLink="/dashboard" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-base font-semibold whitespace-nowrap hover:bg-gray-50 transition-colors">
-          Мои встречи
-        </button>
-        <button class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg bg-black text-white text-base font-semibold whitespace-nowrap">
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86308 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8.1402 2.1889L8.09191 10.8049" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Загрузить файл
-        </button>
-      </div>
+        <div class="flex items-center gap-3">
+          <button routerLink="/dashboard" class="flex items-center justify-center px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold whitespace-nowrap hover:bg-gray-50">
+            Мои встречи
+          </button>
+
+          <button routerLink="/upload" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg bg-black text-white text-sm font-semibold whitespace-nowrap">
+            <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+              <path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86308 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.1402 2.1889L8.09191 10.8049" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Загрузить файл
+          </button>
+
+          @if (isAdmin) {
+            <button routerLink="/admin" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold whitespace-nowrap hover:bg-gray-50 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Панель админа
+            </button>
+          }
+        </div>
 
       <div class="flex items-center gap-3 shrink-0">
         <div class="text-right hidden sm:block">

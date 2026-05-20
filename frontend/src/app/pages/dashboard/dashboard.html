@@ -7,17 +7,27 @@
       <span routerLink="/dashboard" class="text-black font-bold text-xl whitespace-nowrap shrink-0 cursor-pointer hover:opacity-80 transition-opacity">Транскрибация Встреч</span>
 
       <div class="flex items-center gap-3">
-        <button class="flex items-center justify-center px-[10px] py-[5px] rounded-lg bg-black text-white text-base font-semibold whitespace-nowrap">
+        <button routerLink="/dashboard" class="flex items-center justify-center px-[10px] py-[5px] rounded-lg bg-black text-white text-sm font-semibold whitespace-nowrap">
           Мои встречи
         </button>
-        <button routerLink="/upload" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-base font-semibold whitespace-nowrap hover:bg-gray-50 transition-colors">
+
+        <button routerLink="/upload" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold whitespace-nowrap hover:bg-gray-50 transition-colors">
           <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86308 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8.1402 2.1889L8.09191 10.8049" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86308 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8.1402 2.1889L8.09191 10.8049" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Загрузить файл
         </button>
+
+        @if (isAdmin) {
+          <button routerLink="/admin" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold whitespace-nowrap hover:bg-gray-50 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Панель админа
+          </button>
+        }
       </div>
 
       <div class="flex items-center gap-3 shrink-0">
@@ -77,32 +87,23 @@
             </span>
           </div>
 
-          <div class="flex flex-wrap items-center gap-6 pl-[50px]">
-            <div class="flex items-center gap-1.5">
-              <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
-                <circle cx="10.5" cy="10.5" r="7" stroke="#4E5767" stroke-width="1.5"/>
-                <path d="M10.5 7V11L12.5 13" stroke="#4E5767" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-              <span class="text-app-text-secondary text-[15px]">{{ meeting.duration || '--:--' }}</span>
+          <div class="flex items-center gap-10 pl-[50px]">
+            <!-- Длительность -->
+            <div class="flex items-center gap-3">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#868694" stroke-width="1.5"/><path d="M12 7V12L15 15" stroke="#868694" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div>
+                <div class="text-xs text-app-text-secondary mb-0.5">Длительность</div>
+                <div class="font-medium text-black">{{ meeting.duration_sec | duration }}</div>
+              </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-                <path d="M8.5 8C10.5 8 12 6.5 12 4.5C12 2.5 10.5 1 8.5 1C6.5 1 5 2.5 5 4.5C5 6.5 6.5 8 8.5 8Z" stroke="#4E5767" stroke-width="1.5"/>
-                <path d="M14 14C14 11.5 11.5 10 8.5 10C5.5 10 3 11.5 3 14" stroke="#4E5767" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-              <span class="text-app-text-secondary text-[15px]">{{ meeting.participantCount || 0 }} участников</span>
+            <!-- Участники -->
+            <div class="flex items-center gap-3">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M17 20C17 18.3431 14.7614 17 12 17C9.23858 17 7 18.3431 7 20M12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8C13.6569 8 15 9.34315 15 11C15 12.6569 13.6569 14 12 14Z" stroke="#868694" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div>
+                <div class="text-xs text-app-text-secondary mb-0.5">Участники</div>
+                <div class="font-medium text-black">{{ meeting.participant_count || 0 }} человек</div>
+              </div>
             </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2 pl-[50px]">
-            <span class="text-app-text-secondary text-[14px]">Спикеры:</span>
-            @if (meeting.transcript_data?.speakers; as speakers) {
-              @for (speaker of speakers; track speaker) {
-                <span class="px-2 py-0.5 rounded-lg bg-app-tag-bg text-black text-[11px] font-bold uppercase">{{ speaker }}</span>
-              }
-            } @else {
-              <span class="text-xs italic text-app-text-muted">Анализируется...</span>
-            }
           </div>
 
           <div class="pl-[50px] mt-2">

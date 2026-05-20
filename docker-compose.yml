@@ -1,8 +1,13 @@
 services:
+  # --- BACKEND API ---
   api:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: verbatim_api
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "alembic upgrade head && 
+             uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     env_file:
@@ -12,7 +17,9 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - REDIS_HOST=redis
     volumes:
-      - ./src:/app/src
+      - ./backend/src:/app/src
+      - ./backend/migrations:/app/migrations
+      - ./backend/alembic.ini:/app/alembic.ini
       - shared_uploads:/app/temp_uploads
     depends_on:
       redis:
@@ -20,8 +27,11 @@ services:
       postgres:
         condition: service_healthy
 
+  # --- CELERY WORKER (ML Pipeline) ---
   worker:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: verbatim_worker
     command: celery -A src.celery_app worker --loglevel=info --concurrency=2
     env_file:
@@ -31,8 +41,10 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - REDIS_HOST=redis
     volumes:
-      - ./src:/app/src
+      - ./backend/src:/app/src
       - shared_uploads:/app/temp_uploads
+      - gigaam_models:/root/.cache/gigaam
+      - huggingface_cache:/root/.cache/huggingface
     depends_on:
       redis:
         condition: service_healthy
@@ -44,12 +56,22 @@ services:
               count: 1
               capabilities: [gpu]
 
+  # --- FRONTEND (Nginx) ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: verbatim_frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+
+  # --- INFRASTRUCTURE ---
   redis:
     image: redis:8-alpine
     container_name: verbatim_redis
     restart: always
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -83,8 +105,8 @@ services:
     container_name: verbatim_minio
     restart: always
     ports:
-      - "9000:9000"  # API Port.
-      - "9001:9001"  # Console Port.
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
@@ -103,3 +125,5 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  gigaam_models:
+  huggingface_cache:

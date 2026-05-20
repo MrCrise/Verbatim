@@ -43,7 +43,8 @@ async def upload_media(
         title=final_title,
         storage_file_path="",
         owner_id=current_user.id,
-        status=MeetingStatus.UPLOADED
+        status=MeetingStatus.UPLOADED,
+        file_size_bytes = file.size
     )
     db.add(new_meeting)
     await db.commit()
