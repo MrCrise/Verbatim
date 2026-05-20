@@ -1,0 +1,69 @@
+from pydantic import BaseModel, EmailStr, UUID4, Field, ConfigDict
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+from src.db.models import MeetingStatus
+
+
+# --- Токены ---
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+
+# --- Пользователи ---
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=72,
+                          description="Password (8-72 characters)")
+    full_name: str
+
+
+class UserResponse(BaseModel):
+    id: UUID4
+    email: EmailStr
+    full_name: str
+    is_admin: bool
+
+    class Config:
+        from_attributes = True
+
+
+# --- Записи встреч ---
+
+class MeetingBase(BaseModel):
+    id: UUID4
+    title: str
+    status: MeetingStatus
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- Список записей ---
+class MeetingSummary(MeetingBase):
+    duration_sec: Optional[float] = None
+    participant_count: int = 0
+
+
+# --- Схема для страницы конкретной записи ---
+class MeetingDetail(MeetingBase):
+    transcript_data: Optional[Dict[str, Any]] = None
+    speakers_map: Optional[Dict[str, str]] = None
+    celery_task_id: Optional[str] = None
+    duration_sec: Optional[float] = None
+
+# --- Схема для переименования спикера ---
+class SpeakerUpdateRequest(BaseModel):
+    speaker_id: str
+    real_name: str
+
+
+# --- Схема для исправления текста ---
+class SegmentUpdateRequest(BaseModel):
+    segment_index: int
+    new_text: str

@@ -1,0 +1,166 @@
+<div class="min-h-screen bg-app-bg font-montserrat flex flex-col">
+
+  <!-- Скрытый инпут для файла -->
+  <input type="file" #fileInput (change)="onFileSelected($event)" accept="audio/*,video/*" class="hidden">
+
+<!-- Navigation -->
+  <nav class="w-full h-[70px] bg-white border-b border-black/10 backdrop-blur-[9.35px] flex items-center px-6 lg:px-[100px] sticky top-0 z-50">
+    <div class="flex items-center justify-between w-full gap-4">
+      <!-- Кликабельный логотип -->
+      <span routerLink="/dashboard" class="text-black font-bold text-xl whitespace-nowrap shrink-0 cursor-pointer hover:opacity-80 transition-opacity">Транскрибация Встреч</span>
+
+        <div class="flex items-center gap-3">
+          <button routerLink="/dashboard" class="flex items-center justify-center px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold whitespace-nowrap hover:bg-gray-50">
+            Мои встречи
+          </button>
+
+          <button routerLink="/upload" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg bg-black text-white text-sm font-semibold whitespace-nowrap">
+            <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+              <path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86308 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.1402 2.1889L8.09191 10.8049" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Загрузить файл
+          </button>
+
+          @if (isAdmin) {
+            <button routerLink="/admin" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold whitespace-nowrap hover:bg-gray-50 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Панель админа
+            </button>
+          }
+        </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="text-right hidden sm:block">
+          <div class="text-black font-semibold text-base leading-tight">{{ userName }}</div>
+        </div>
+        <button (click)="onLogout()" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-app-icon text-app-text-icon text-[15px] font-medium hover:bg-gray-50 transition-colors whitespace-nowrap">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M5.33337 1.14285L3.20004 1.14285C2.63425 1.14285 2.09162 1.32347 1.69155 1.64496C1.29147 1.96645 1.06671 2.40248 1.06671 2.85714L1.06671 13.1429C1.06671 13.5975 1.29147 14.0335 1.69155 14.355C2.09162 14.6765 2.63425 14.8571 3.20004 14.8571L5.33337 14.8571" stroke="#39393D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10.6252 11.554L14.9333 8.06269L10.6252 4.57143" stroke="#39393D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13.8562 8.06269H5.24005" stroke="#39393D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Выйти
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page Content -->
+  <main class="flex-1 flex flex-col items-center justify-start pt-12 pb-20 px-4 w-full max-w-[800px] mx-auto">
+
+    <div class="text-center mb-10">
+      <h1 class="text-[36px] font-bold text-black mb-3">Загрузить новый файл</h1>
+      <p class="text-[17px] text-app-text-secondary">Загрузите аудио или видео запись встречи для автоматической транскрибации</p>
+    </div>
+
+    <!-- Upload Card -->
+    <div class="w-full bg-white rounded-2xl border border-app-border p-8 shadow-sm mb-8">
+
+      <div class="mb-6">
+        <h3 class="text-sm font-bold text-black mb-1">Информация о файле</h3>
+        <p class="text-xs text-app-text-secondary">Поддерживаемые форматы: MP3, WAV, MP4, AVI, MOV</p>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-sm font-bold text-black mb-3">Файл встречи</h3>
+        <!-- Drag & Drop Zone -->
+        <div
+          class="w-full h-[180px] border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 hover:bg-gray-50 flex flex-col items-center justify-center cursor-pointer transition-colors"
+          (click)="triggerFileInput()"
+          (dragover)="onDragOver($event)"
+          (drop)="onDrop($event)"
+        >
+          @if (!selectedFile) {
+            <svg class="mb-4" width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.6667 11.3333L17 5.66666L11.3333 11.3333" stroke="#868694" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 5.66666V22.6667" stroke="#868694" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M28.3333 22.6667V26.9167C28.3333 27.699 27.7123 28.3333 26.9167 28.3333H7.08333C6.2877 28.3333 5.66667 27.699 5.66667 26.9167V22.6667" stroke="#868694" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="text-sm font-semibold text-black">Нажмите для выбора файла или перетащите его сюда</span>
+          } @else {
+            <svg class="mb-4" width="38" height="38" viewBox="0 0 38 38" fill="none">
+              <circle cx="19" cy="19" r="13" stroke="#28a745" stroke-width="2.5"/>
+              <path d="M14 19L17 22L24 15" stroke="#28a745" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span class="text-sm font-bold text-green-600 mb-1">Файл выбран</span>
+            <span class="text-xs text-app-text-secondary">{{ selectedFile.name }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-sm font-bold text-black mb-2">Название встречи</h3>
+        <input
+          type="text"
+          [(ngModel)]="meetingTitle"
+          placeholder="Например: Разработка ASR-инструмента"
+          class="w-full bg-app-input-bg border border-transparent focus:border-app-icon rounded-lg px-4 py-3 text-sm text-black outline-none transition-colors"
+        >
+      </div>
+
+      <div class="mb-8">
+        <h3 class="text-sm font-bold text-black mb-2">Описание (опционально)</h3>
+        <textarea
+          [(ngModel)]="meetingDescription"
+          placeholder="Дополнительная информация о встрече"
+          rows="2"
+          class="w-full bg-app-input-bg border border-transparent focus:border-app-icon rounded-lg px-4 py-3 text-sm text-black outline-none transition-colors resize-none"
+        ></textarea>
+      </div>
+
+      <button
+        (click)="startUpload()"
+        [disabled]="!selectedFile || uploading"
+        class="w-full py-4 rounded-lg border border-black text-black font-semibold text-base hover:bg-gray-50 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+      >
+        @if (uploading) {
+          <div class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+          Загрузка...
+        } @else {
+          Начать транскрибацию
+        }
+      </button>
+
+    </div>
+
+    <!-- Steps Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+      <div class="bg-white rounded-2xl border border-app-border p-6 flex flex-col items-center justify-center text-center shadow-sm">
+        <div class="w-12 h-12 bg-app-input-bg rounded-xl flex items-center justify-center mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 16V4M12 4L8 8M12 4L16 8M4 16V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V16" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4 class="font-bold text-lg text-black mb-1">Шаг 1</h4>
+        <p class="text-sm text-app-text-secondary leading-tight">Загрузите аудио или видео файл</p>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-app-border p-6 flex flex-col items-center justify-center text-center shadow-sm">
+        <div class="w-12 h-12 bg-app-input-bg rounded-xl flex items-center justify-center mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="6" width="16" height="12" rx="2" stroke="#000" stroke-width="2"/>
+            <path d="M22 9L18 11V13L22 15V9Z" stroke="#000" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4 class="font-bold text-lg text-black mb-1">Шаг 2</h4>
+        <p class="text-sm text-app-text-secondary leading-tight">Автоматическая транскрибация</p>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-app-border p-6 flex flex-col items-center justify-center text-center shadow-sm">
+        <div class="w-12 h-12 bg-app-input-bg rounded-xl flex items-center justify-center mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#000" stroke-width="2"/>
+            <path d="M8 12L11 15L16 9" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4 class="font-bold text-lg text-black mb-1">Шаг 3</h4>
+        <p class="text-sm text-app-text-secondary leading-tight">Получите текстовую расшифровку</p>
+      </div>
+    </div>
+
+  </main>
+</div>

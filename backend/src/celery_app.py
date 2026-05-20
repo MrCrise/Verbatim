@@ -19,6 +19,6 @@ celery_app.conf.update(
     task_acks_late=True,
     broker_transport_options={"visibility_timeout": 7200},
     worker_prefetch_multiplier=1,
-    worker_max_tasks_per_child=50,
+    worker_max_tasks_per_child=1,
     broker_connection_retry_on_startup=True
 )

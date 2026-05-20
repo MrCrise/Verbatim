@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+    
+    # --- JWT ---
+    JWT_SECRET_KEY: str = "super_secret_key"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
+    JWT_ALGORITHM: str = "HS256"
+
+    # --- API ---
+    API_V1_STR: str = "/api/v1"
 
     # --- REDIS & CELERY ---
     REDIS_HOST: str = "localhost"
@@ -43,12 +51,40 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY: str = "admin"
     MINIO_SECRET_KEY: str = "password123"
     MINIO_BUCKET_AUDIO: str = "raw-audio"
-    MINIO_SECURE: bool = False  # False - http, True - https.
+    MINIO_SECURE: bool = True  # False - http, True - https.
 
+    # --- ML ---
+    HF_TOKEN: str
+
+    ML_GIGAAM_MODEL_NAME: str = "v3_e2e_rnnt"
+    ML_TARGET_SR: int = 16000
+
+    ML_ASR_CHUNK_SEC: float = 24.0
+    ML_ASR_OVERLAP_SEC: float = 1.0
+
+    ML_DIAR_PIPELINE_NAME: str = "pyannote/speaker-diarization-3.1"
+    ML_DIAR_MIN_SPEAKERS: int = 2
+    ML_DIAR_MAX_SPEAKERS: int = 8
+
+    ML_DIAR_CLUSTER_THRESHOLD: float = 0.68
+    ML_DIAR_MIN_CLUSTER_SIZE: int = 10
+    ML_DIAR_MIN_DUR_OFF: float = 0.18
+
+    ML_DIAR_SMOOTH_MERGE_GAP: float = 0.25
+    ML_DIAR_SMOOTH_MIN_DUR: float = 0.0
+
+    ML_WORD_SPEAKER_TOL: float = 0.35
+
+    ML_ALIGN_TOL: float = 0.05
+    ML_SEG_MERGE_GAP: float = 2.0
+    ML_SEG_SHORT_WORDS: int = 4
+    ML_SEG_SHORT_DUR: float = 1.2
     # --- FILES ---
     UPLOAD_DIR: str = "temp_uploads"
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
+
+    ADMIN_EMAIL: str = "admin@gmail.com"
 
 
 # --- Dependency Injection ---
