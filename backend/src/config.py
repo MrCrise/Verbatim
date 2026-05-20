@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     MINIO_SECURE: bool = True  # False - http, True - https.
 
     # --- ML ---
+    HF_TOKEN: str
+
     ML_GIGAAM_MODEL_NAME: str = "v3_e2e_rnnt"
     ML_TARGET_SR: int = 16000
 
