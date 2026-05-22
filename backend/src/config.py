@@ -64,9 +64,9 @@ class Settings(BaseSettings):
     ML_DIAR_MIN_SPEAKERS: int = 2
     ML_DIAR_MAX_SPEAKERS: int = 8
 
-    ML_DIAR_CLUSTER_THRESHOLD: float = 0.68
+    ML_DIAR_CLUSTER_THRESHOLD: float = 0.63
     ML_DIAR_MIN_CLUSTER_SIZE: int = 10
-    ML_DIAR_MIN_DUR_OFF: float = 0.18
+    ML_DIAR_MIN_DUR_OFF: float = 0.55
 
     ML_DIAR_SMOOTH_MERGE_GAP: float = 0.25
     ML_DIAR_SMOOTH_MIN_DUR: float = 0.0
@@ -74,9 +74,11 @@ class Settings(BaseSettings):
     ML_WORD_SPEAKER_TOL: float = 0.35
 
     ML_ALIGN_TOL: float = 0.05
-    ML_SEG_MERGE_GAP: float = 2.0
+    ML_SEG_MERGE_GAP: float = 3.0
     ML_SEG_SHORT_WORDS: int = 4
     ML_SEG_SHORT_DUR: float = 1.2
+    HF_TOKEN: str = ""
+    
     # --- FILES ---
     UPLOAD_DIR: str = "temp_uploads"
 

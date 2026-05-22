@@ -114,27 +114,29 @@ class MLPipeline:
                 "2. https://huggingface.co/pyannote/segmentation-3.0\n"
                 "Check your HF_TOKEN permissions as well."
             )
+            
         if self.diar_pipeline is not None:
+            # Берём обновлённые параметры из конфига
             thr = settings.ML_DIAR_CLUSTER_THRESHOLD
-            min_cluster = settings.ML_DIAR_MIN_CLUSTER_SIZE
             min_off = settings.ML_DIAR_MIN_DUR_OFF
+            
             try:
+                # ВАЖНО: убрали min_cluster_size, чтобы включить автоматическую калибровку Pyannote
                 self.diar_pipeline.instantiate({
                     "clustering": {
                         "threshold": thr,
-                        "min_cluster_size": min_cluster,
                     },
                     "segmentation": {
                         "min_duration_off": min_off,
                     },
                 })
                 logger.info(
-                    f"[Diarization] Params: threshold={thr}, min_cluster_size={min_cluster}, min_duration_off={min_off}"
+                    f"[Diarization] Auto-calibration enabled | Params: threshold={thr}, min_duration_off={min_off}"
                 )
             except Exception as e:
                 logger.warning(f"[Diarization] Failed to instantiate custom params: {e}")
         
-        self.diar_pipeline.to(torch.device(self.device))    
+        self.diar_pipeline.to(torch.device(self.device))
 
     def preprocess_audio(self, audio_path: Path) -> tuple:
         """
@@ -318,11 +320,15 @@ class MLPipeline:
             f"[Diarization] Done in {runtime:.2f}s | Speakers: {speakers} | Segments: {len(segments)}"
         )
 
-        return {
+        diar_result = {
             "segments": segments,
             "speakers": speakers,
             "runtime_sec": round(runtime, 3),
         }
+        logger.info("[Diarization] Starting filtering of ghost speakers...")
+        diar_result = self._clean_ghost_speakers(diar_result, min_total_duration=1.8)
+
+        return diar_result
 
     def merge_asr_diarization(self, asr_result: Dict, diar_result: Dict) -> List[Dict]:
         """
@@ -463,77 +469,92 @@ class MLPipeline:
 
         This reduces speaker fragmentation caused by word-level assignment jitter.
         """
-        if not merged_words or not diar_segments:
+        if not merged_words:
             return []
 
-        words = sorted(merged_words, key=lambda x: (x["start"], x["end"]))
-        diar = sorted(diar_segments, key=lambda x: (x["start"], x["end"]))
+        import re
+        valid_words = []
+        for w in merged_words:
+            word_text = w.get("word", "").strip()
+            if re.search(r'[a-zA-Zа-яА-ЯёЁ0-9]', word_text):
+                valid_words.append(w)
 
-        TOL = settings.ML_ALIGN_TOL
+        if not valid_words:
+            return []
 
-        out = []
-        wi = 0
-        n = len(words)
+        words = sorted(valid_words, key=lambda x: x["start"])
+        
+        result = []
+        current_speaker = words[0]["speaker"]
+        current_words = [words[0]]
 
-        for seg in diar:
-            seg_start = seg["start"]
-            seg_end = seg["end"]
-            spk = seg["speaker"]
+        for w in words[1:]:
+            if w["speaker"] == current_speaker:
+                current_words.append(w)
+            else:
+                result.append({
+                    "speaker": current_speaker,
+                    "start": current_words[0]["start"],
+                    "end": current_words[-1]["end"],
+                    "text": " ".join(x["word"] for x in current_words).strip(),
+                })
+                current_speaker = w["speaker"]
+                current_words = [w]
 
-            while wi < n and words[wi]["end"] < seg_start - TOL:
-                wi += 1
+        result.append({
+            "speaker": current_speaker,
+            "start": current_words[0]["start"],
+            "end": current_words[-1]["end"],
+            "text": " ".join(x["word"] for x in current_words).strip(),
+        })
 
-            seg_words = []
-            wj = wi
-            while wj < n and words[wj]["start"] <= seg_end + TOL:
-                w = words[wj]
-                mid = (w["start"] + w["end"]) / 2
-                if seg_start - TOL <= mid <= seg_end + TOL:
-                    w["speaker"] = spk 
-                    seg_words.append(w)
-                wj += 1
-
-            wi = wj
-
-            if not seg_words:
+        MAX_SAME_SPEAKER_GAP = settings.ML_SEG_MERGE_GAP
+        
+        smoothed = []
+        for seg in result:
+            if not seg["text"]:
                 continue
-
-            out.append({
-                "speaker": spk,
-                "start": seg_words[0]["start"],
-                "end": seg_words[-1]["end"],
-                "text": " ".join(w["word"] for w in seg_words),
-            })
-
-        MERGE_GAP = settings.ML_SEG_MERGE_GAP
-        SHORT_WORDS = settings.ML_SEG_SHORT_WORDS
-        SHORT_DUR = settings.ML_SEG_SHORT_DUR
-
-        merged = []
-        for seg in out:
-            seg_dur = seg["end"] - seg["start"]
-            seg_wc = len(seg["text"].split())
-
-            if merged and merged[-1]["speaker"] == seg["speaker"]:
-                gap = seg["start"] - merged[-1]["end"]
-                if gap <= MERGE_GAP or seg_wc < SHORT_WORDS or seg_dur < SHORT_DUR:
-                    merged[-1]["text"] += " " + seg["text"]
-                    merged[-1]["end"] = seg["end"]
+                
+            if smoothed and smoothed[-1]["speaker"] == seg["speaker"]:
+                gap = seg["start"] - smoothed[-1]["end"]
+                if gap <= MAX_SAME_SPEAKER_GAP:
+                    smoothed[-1]["text"] += " " + seg["text"]
+                    smoothed[-1]["end"] = seg["end"]
                     continue
+            smoothed.append(seg)
 
-            merged.append(seg)
+        return smoothed
 
+    def _clean_ghost_speakers(self, diar_result: Dict, min_total_duration: float = 1.8) -> Dict:
+        """
+        Finds speakers who have spoken for less than min_total_duration seconds,
+        and removes them, moving their segments to the nearest legitimate speakers.
+        """
+        segments = diar_result["segments"]
+        if not segments:
+            return diar_result
 
-        for seg in merged:
-            toks = seg["text"].split()
-            out_toks = []
-            for t in toks:
-                if out_toks and out_toks[-1].lower() == t.lower():
-                    continue
-                out_toks.append(t)
-            seg["text"] = " ".join(out_toks)
+        speaker_durations = {}
+        for seg in segments:
+            dur = seg["end"] - seg["start"]
+            speaker_durations[seg["speaker"]] = speaker_durations.get(seg["speaker"], 0.0) + dur
 
-        return merged
+        ghost_speakers = {spk for spk, dur in speaker_durations.items() if dur < min_total_duration}
+        
+        if not ghost_speakers:
+            return diar_result
+
+        logger.info(f"[Diarization Filter] False speakers found: {ghost_speakers}. Removing...")
+
+        cleaned_segments = []
+        for seg in segments:
+            if seg["speaker"] in ghost_speakers:
+                seg["speaker"] = "unknown" 
+            cleaned_segments.append(seg)
+
+        diar_result["segments"] = cleaned_segments
+        diar_result["speakers"] = sorted(set(s["speaker"] for s in cleaned_segments if s["speaker"] != "unknown"))
+        return diar_result
 
     def process(self, audio_path: str) -> Dict[str, Any]:
         """
