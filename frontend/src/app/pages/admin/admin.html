@@ -6,7 +6,7 @@
         <button routerLink="/dashboard" class="flex items-center justify-center px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold hover:bg-gray-50">Мои встречи</button>
 
         <button routerLink="/upload" class="flex items-center gap-2 px-[10px] py-[5px] rounded-lg border border-black text-black text-sm font-semibold hover:bg-gray-50">
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none"><path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86308 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.1402 2.1889L8.09191 10.8049" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none"><path d="M1.17273 10.6729L1.16077 12.8062C1.1576 13.372 1.33517 13.9156 1.65442 14.3175C1.97366 14.7194 2.40843 14.9466 2.86231 14.9491L13.1486 15.0068C13.6033 15.0093 14.0406 14.787 14.3643 14.3887C14.688 13.9904 14.8717 13.4488 14.8748 12.8831L14.8868 10.7498" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.6133 5.4394L8.14627 1.11183L4.63092 5.40027" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.1402 2.1889L8.09191 10.8049" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Загрузить файл
         </button>
 
@@ -15,7 +15,14 @@
           Панель админа
         </button>
       </div>
-      <button (click)="onLogout()" class="px-3 py-1 rounded-lg border border-app-icon text-app-text-icon text-sm font-medium hover:bg-gray-50">Выйти</button>
+
+      <!-- Username display inside admin topbar -->
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="text-right hidden sm:block">
+          <div class="text-black font-semibold text-base leading-tight">{{ userName }}</div>
+        </div>
+        <button (click)="onLogout()" class="px-3 py-1 rounded-lg border border-app-icon text-app-text-icon text-sm font-medium hover:bg-gray-50">Выйти</button>
+      </div>
     </div>
   </nav>
 

@@ -1,7 +1,7 @@
 <div class="min-h-screen bg-app-bg flex items-center justify-center px-4 font-montserrat">
   <div class="w-full max-w-[398px]">
     <!-- Card -->
-    <div class="bg-white rounded-[13px] border border-app-border shadow-sm px-9 py-8 flex flex-col gap-5">
+    <div class="bg-white rounded-[13px] border border-app-border shadow-sm px-9 py-8 flex flex-col gap-5 animate-fade-in">
 
       <!-- Title -->
       <div class="text-center">
@@ -42,8 +42,8 @@
               type="email"
               [(ngModel)]="loginEmail"
               name="loginEmail"
-              placeholder="example&#64;gmail.com"
-              class="w-full px-[10px] py-[7px] rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors"
+              placeholder="example@gmail.com"
+              class="w-full h-[34px] px-[10px] py-0 rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors leading-[34px]"
             />
           </div>
           <!-- Password -->
@@ -54,7 +54,7 @@
               [(ngModel)]="loginPassword"
               name="loginPassword"
               placeholder="••••••••"
-              class="w-full px-[10px] py-[5px] rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors"
+              class="w-full h-[34px] px-[10px] py-0 rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors leading-[34px]"
             />
           </div>
           <!-- Submit -->
@@ -78,7 +78,7 @@
               [(ngModel)]="registerName"
               name="registerName"
               placeholder="Иван Иванов"
-              class="w-full px-[10px] py-[7px] rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors"
+              class="w-full h-[34px] px-[10px] py-0 rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors leading-[34px]"
             />
           </div>
           <!-- Email -->
@@ -88,8 +88,8 @@
               type="email"
               [(ngModel)]="registerEmail"
               name="registerEmail"
-              placeholder="example&#64;gmail.com"
-              class="w-full px-[10px] py-[7px] rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors"
+              placeholder="example@gmail.com"
+              class="w-full h-[34px] px-[10px] py-0 rounded-lg bg-app-input-bg text-[12px] font-medium text-app-text-muted placeholder:text-app-text-muted outline-none border border-transparent focus:border-app-icon transition-colors leading-[34px]"
             />
           </div>
           <!-- Password -->
@@ -100,7 +100,7 @@
               [(ngModel)]="registerPassword"
               name="registerPassword"
               placeholder="••••••••"
-              class="w-full px-[10px] py-[5px] rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors"
+              class="w-full h-[34px] px-[10px] py-0 rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors leading-[34px]"
             />
           </div>
           <!-- Confirm Password -->
@@ -111,7 +111,7 @@
               [(ngModel)]="registerConfirmPassword"
               name="registerConfirmPassword"
               placeholder="••••••••"
-              class="w-full px-[10px] py-[5px] rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors"
+              class="w-full h-[34px] px-[10px] py-0 rounded-lg bg-app-input-bg text-base font-semibold text-[#717182] placeholder:text-[#717182] outline-none border border-transparent focus:border-app-icon transition-colors leading-[34px]"
             />
           </div>
           <!-- Submit -->
@@ -119,7 +119,7 @@
             type="submit"
             class="w-full py-[6px] px-[10px] rounded-lg bg-black text-white text-sm font-semibold text-center hover:bg-gray-900 transition-colors mt-1"
           >
-            Зарегестрироваться
+            Зарегистрироваться
           </button>
         </form>
       }

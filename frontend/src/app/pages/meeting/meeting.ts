@@ -17,7 +17,7 @@ export class MeetingPage implements OnInit, OnDestroy {
 
   meetingId: string = '';
   meeting: MeetingResponse | null = null;
-  userName = 'Системный Пользователь';
+  userName = 'Загрузка...';
 
   audioUrl: string | null = null;
   isDownloading = false;
@@ -33,7 +33,14 @@ export class MeetingPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.api.getCurrentUser().subscribe(user => this.isAdmin = user.is_admin);
+    this.api.getCurrentUser().subscribe({
+      next: (user) => {
+        this.userName = user.full_name || user.email;
+        this.isAdmin = user.is_admin;
+      },
+      error: () => this.onLogout()
+    });
+
     this.meetingId = this.route.snapshot.paramMap.get('id') || '';
     if (this.meetingId) {
       this.loadMeeting();
@@ -47,7 +54,6 @@ export class MeetingPage implements OnInit, OnDestroy {
         this.meeting = res;
         if (this.meeting.transcript_data?.speakers) {
           this.meeting.transcript_data.speakers.forEach(spk => {
-
             this.speakersMap[spk] = this.meeting!.speakers_map?.[spk] || spk;
           });
         }
@@ -114,7 +120,7 @@ export class MeetingPage implements OnInit, OnDestroy {
   }
 
   saveRenaming(speakerId: string) {
-    this.editingSpeaker = null; //
+    this.editingSpeaker = null;
     const newName = this.speakersMap[speakerId];
 
     this.api.updateSpeaker(this.meetingId, speakerId, newName).subscribe({
@@ -131,7 +137,7 @@ export class MeetingPage implements OnInit, OnDestroy {
   }
 
   getFilteredSegments() {
-    if (!this.meeting?.transcript_data?.segments) return[];
+    if (!this.meeting?.transcript_data?.segments) return [];
     if (!this.activeSpeakerFilter) return this.meeting.transcript_data.segments;
     return this.meeting.transcript_data.segments.filter(
       seg => seg.speaker === this.activeSpeakerFilter
