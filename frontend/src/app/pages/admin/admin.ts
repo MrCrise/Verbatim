@@ -15,6 +15,7 @@ export class AdminPage implements OnInit {
   users: any[] = [];
   searchQuery = '';
   isRoleEditMode = false;
+  userName = 'Загрузка...';
 
   showAddUserModal = false;
   isCreatingUser = false;
@@ -25,6 +26,16 @@ export class AdminPage implements OnInit {
   ngOnInit() {
     this.loadStats();
     this.loadUsers();
+    this.loadCurrentUserName();
+  }
+
+  loadCurrentUserName() {
+    this.api.getCurrentUser().subscribe({
+      next: (user) => {
+        this.userName = user.full_name || user.email;
+      },
+      error: () => this.onLogout()
+    });
   }
 
   loadStats() {
