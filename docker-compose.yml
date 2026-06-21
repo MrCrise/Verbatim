@@ -110,7 +110,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-      MINIO_KMS_SECRET_KEY: "verbatim-key:MjAyNi12ZXJiYXRpbS1rZXktdGVzdC0zMmJ5dGVzISE="
+      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY}
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]

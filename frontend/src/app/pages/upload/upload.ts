@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef } from '@angular/core';
+import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -10,18 +10,26 @@ import { ApiService } from '../../api.service';
   imports:[CommonModule, FormsModule, RouterModule],
   templateUrl: './upload.html',
 })
-export class UploadPage {
+export class UploadPage implements OnInit {
   isAdmin = false;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
-  userName = 'Системный Пользователь';
+  userName = 'Загрузка...';
   selectedFile: File | null = null;
   meetingTitle = '';
   meetingDescription = '';
   uploading = false;
 
-  constructor(private router: Router, private api: ApiService) {
-    this.api.getCurrentUser().subscribe(user => this.isAdmin = user.is_admin);
+  constructor(private router: Router, private api: ApiService) {}
+
+  ngOnInit() {
+    this.api.getCurrentUser().subscribe({
+      next: (user) => {
+        this.userName = user.full_name || user.email;
+        this.isAdmin = user.is_admin;
+      },
+      error: () => this.onLogout()
+    });
   }
 
   onLogout() {
